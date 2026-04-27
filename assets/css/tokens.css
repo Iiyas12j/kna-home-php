@@ -1,0 +1,48 @@
+:root {
+  /* COLORS (TODO: measure from DevTools) */
+  --color-bg: #ffffff;             /* TODO */
+  --color-text: #111111;           /* TODO */
+  --color-muted: #666666;          /* TODO */
+  --color-border: #e5e5e5;         /* TODO */
+  --color-surface: #f7f7f7;        /* TODO */
+  --color-primary: #000000;        /* TODO */
+  --color-primary-contrast: #ffffff; /* TODO */
+  --color-hero-bg: #f2f2f2;        /* TODO */
+
+  /* TYPOGRAPHY (TODO: exact font stack from DevTools) */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans Thai", sans-serif;
+  --font-display: var(--font-sans);
+
+  --fs-12: 12px; /* TODO */
+  --fs-14: 14px; /* TODO */
+  --fs-16: 16px; /* TODO */
+  --fs-32: 32px; /* TODO */
+  --fs-48: 48px; /* TODO */
+  --lh-tight: 1.1; /* TODO */
+  --lh-normal: 1.5; /* TODO */
+
+  /* SPACING (TODO: measure scale) */
+  --space-8: 8px;   /* TODO */
+  --space-12: 12px; /* TODO */
+  --space-16: 16px; /* TODO */
+  --space-24: 24px; /* TODO */
+  --space-32: 32px; /* TODO */
+  --space-48: 48px; /* TODO */
+  --space-64: 64px; /* TODO */
+
+  /* RADII / SHADOWS (TODO) */
+  --radius-12: 12px;     /* TODO */
+  --radius-pill: 999px;  /* TODO confirm */
+  --shadow-sm: 0 1px 8px rgba(0,0,0,0.08); /* TODO */
+
+  /* LAYOUT (TODO) */
+  --container-max: 1200px;       /* TODO */
+  --container-pad-x: 16px;       /* TODO */
+  --section-pad-y: 64px;         /* TODO */
+  --header-height: 72px;         /* TODO */
+
+  /* HERO min-height lock (TODO) */
+  --hero-min-h-desktop: 560px;   /* TODO */
+  --hero-min-h-tablet: 520px;    /* TODO */
+  --hero-min-h-mobile: 480px;    /* TODO */
+}
