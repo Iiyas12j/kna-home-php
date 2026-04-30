@@ -1,0 +1,10 @@
+.env
+.env.local
+admin_cookies.txt
+admin_cookies_2.txt
+public/uploads/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

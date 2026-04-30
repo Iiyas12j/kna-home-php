@@ -166,3 +166,93 @@ function ensure_admin_user_registration_columns(PDO $pdo): void
         WHERE requested_role IS NULL OR requested_role = ''
     ");
 }
+
+// ── CSRF Protection ───────────────────────────────────────────────────────────
+
+function csrf_token(): string
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (empty($_SESSION['_csrf_token'])) {
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['_csrf_token'];
+}
+
+function csrf_field(): string
+{
+    return '<input type="hidden" name="_csrf_token" value="' . h(csrf_token()) . '">';
+}
+
+function csrf_verify(): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $token    = (string) ($_POST['_csrf_token'] ?? '');
+    $expected = (string) ($_SESSION['_csrf_token'] ?? '');
+    if ($expected === '' || !hash_equals($expected, $token)) {
+        return false;
+    }
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    return true;
+}
+
+// ── Rate Limiting (file-based, IP-aware) ─────────────────────────────────────
+
+function _rl_file(string $key): string
+{
+    return sys_get_temp_dir() . '/kna_rl_' . md5($key) . '.json';
+}
+
+function rate_limit_check(string $key, int $maxAttempts = 5, int $lockSeconds = 900): bool
+{
+    $file = _rl_file($key);
+    if (!file_exists($file)) {
+        return true;
+    }
+    $data = json_decode((string) file_get_contents($file), true) ?: [];
+    $lockedUntil = (int) ($data['locked_until'] ?? 0);
+    return $lockedUntil <= time();
+}
+
+function rate_limit_hit(string $key, int $maxAttempts = 5, int $lockSeconds = 900): void
+{
+    $file = _rl_file($key);
+    $data = file_exists($file)
+        ? (json_decode((string) file_get_contents($file), true) ?: [])
+        : [];
+
+    $lockedUntil = (int) ($data['locked_until'] ?? 0);
+    if ($lockedUntil > 0 && $lockedUntil <= time()) {
+        $data = ['attempts' => 0, 'locked_until' => 0];
+    }
+
+    $data['attempts'] = (int) ($data['attempts'] ?? 0) + 1;
+    if ($data['attempts'] >= $maxAttempts) {
+        $data['locked_until'] = time() + $lockSeconds;
+        $data['attempts']     = 0;
+    }
+
+    file_put_contents($file, json_encode($data), LOCK_EX);
+}
+
+function rate_limit_clear(string $key): void
+{
+    $file = _rl_file($key);
+    if (file_exists($file)) {
+        @unlink($file);
+    }
+}
+
+function rate_limit_wait_seconds(string $key): int
+{
+    $file = _rl_file($key);
+    if (!file_exists($file)) {
+        return 0;
+    }
+    $data = json_decode((string) file_get_contents($file), true) ?: [];
+    $lockedUntil = (int) ($data['locked_until'] ?? 0);
+    return $lockedUntil > time() ? $lockedUntil - time() : 0;
+}

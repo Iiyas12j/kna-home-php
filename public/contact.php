@@ -59,6 +59,10 @@ if ($db_ready) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        $errors[] = 'คำขอไม่ถูกต้อง กรุณาลองใหม่';
+    }
+
     foreach ($form as $field => $value) {
         $form[$field] = trim((string) ($_POST[$field] ?? ''));
     }
@@ -296,6 +300,7 @@ $siteHeaderActive = 'contact';
                     <?php endif; ?>
 
                     <form method="post" class="mt-8 space-y-6">
+                        <?php echo csrf_field(); ?>
                         <div class="grid gap-5 md:grid-cols-2">
                             <label class="block">
                                 <span class="mb-2 block text-sm font-semibold text-slate-700">ชื่อผู้ติดต่อ</span>

@@ -36,6 +36,10 @@ if (is_member_logged_in()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        $errors[] = 'คำขอไม่ถูกต้อง กรุณาลองใหม่';
+    }
+
     $name = trim((string) ($_POST['name'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     $requested_role = member_registration_role($_POST['requested_role'] ?? 'member');
@@ -438,6 +442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form class="register-form" method="post" action="/register.php">
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" name="redirect" value="<?php echo h($redirect); ?>">
 
                     <div class="register-grid">

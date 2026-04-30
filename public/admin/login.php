@@ -11,18 +11,27 @@ $error = '';
 $db_ready = $pdo instanceof PDO;
 $email = '';
 
+$rl_key = admin_login_rl_key();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim((string) ($_POST['email'] ?? ''));
+    $email    = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
 
-    if (!$db_ready) {
+    if (!rate_limit_check($rl_key)) {
+        $wait  = (int) ceil(rate_limit_wait_seconds($rl_key) / 60);
+        $error = "พยายาม login มากเกินไป กรุณารอ {$wait} นาทีแล้วลองใหม่";
+    } elseif (!csrf_verify()) {
+        $error = 'คำขอไม่ถูกต้อง กรุณาลองใหม่';
+    } elseif (!$db_ready) {
         $error = 'Database not ready.';
     } elseif ($email === '' || $password === '') {
         $error = 'Please enter email and password';
     } elseif (admin_login($pdo, $email, $password)) {
+        rate_limit_clear($rl_key);
         header('Location: /admin/dashboard.php');
         exit;
     } else {
+        rate_limit_hit($rl_key);
         $error = 'Invalid email or password';
     }
 }
@@ -50,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="wrap">
         <form class="card" method="post" action="/admin/login.php">
+            <?php echo csrf_field(); ?>
             <div class="title">Admin Login</div>
             <div class="muted">Sign in to manage the website.</div>
             <?php if ($error !== ''): ?>

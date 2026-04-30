@@ -46,9 +46,14 @@ function admin_login(PDO $pdo, string $email, string $password): bool
 
     $pdo->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = ?')->execute([$admin['id']]);
 
-    $_SESSION['admin_id'] = $admin['id'];
+    $_SESSION['admin_id']    = $admin['id'];
     $_SESSION['admin_email'] = $email;
     return true;
+}
+
+function admin_login_rl_key(): string
+{
+    return 'admin_login:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 
 function admin_logout(): void
@@ -157,12 +162,17 @@ function member_login(PDO $pdo, string $email, string $password): bool
 
     $pdo->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = ?')->execute([$member['id']]);
 
-    $_SESSION['member_id'] = (int) $member['id'];
+    $_SESSION['member_id']    = (int) $member['id'];
     $_SESSION['member_email'] = (string) $member['email'];
-    $_SESSION['member_name'] = (string) ($member['name'] ?? '');
-    $_SESSION['member_role'] = normalize_member_role($member['role'] ?? '');
+    $_SESSION['member_name']  = (string) ($member['name'] ?? '');
+    $_SESSION['member_role']  = normalize_member_role($member['role'] ?? '');
 
     return true;
+}
+
+function member_login_rl_key(): string
+{
+    return 'member_login:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 
 function member_register(PDO $pdo, string $name, string $email, string $password, array $options = [], ?string &$error = null): bool

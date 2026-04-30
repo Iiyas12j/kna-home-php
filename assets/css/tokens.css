@@ -39,7 +39,7 @@
   --container-max: 1200px;       /* TODO */
   --container-pad-x: 16px;       /* TODO */
   --section-pad-y: 64px;         /* TODO */
-  --header-height: 72px;         /* TODO */
+  --header-height: 60px;         /* TODO */
 
   /* HERO min-height lock (TODO) */
   --hero-min-h-desktop: 560px;   /* TODO */

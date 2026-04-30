@@ -23,18 +23,27 @@ if (is_member_logged_in()) {
     exit;
 }
 
+$rl_key = member_login_rl_key();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim((string) ($_POST['email'] ?? ''));
+    $email    = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
 
-    if (!$db_ready) {
+    if (!rate_limit_check($rl_key)) {
+        $wait  = (int) ceil(rate_limit_wait_seconds($rl_key) / 60);
+        $error = "พยายาม login มากเกินไป กรุณารอ {$wait} นาทีแล้วลองใหม่";
+    } elseif (!csrf_verify()) {
+        $error = 'คำขอไม่ถูกต้อง กรุณาลองใหม่';
+    } elseif (!$db_ready) {
         $error = 'ระบบฐานข้อมูลยังไม่พร้อมใช้งาน';
     } elseif ($email === '' || $password === '') {
         $error = 'กรุณากรอกอีเมลและรหัสผ่าน';
     } elseif (member_login($pdo, $email, $password)) {
+        rate_limit_clear($rl_key);
         header('Location: ' . $redirect);
         exit;
     } else {
+        rate_limit_hit($rl_key);
         $error = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
     }
 }
@@ -355,6 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form class="login-form" method="post" action="/login.php">
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" name="redirect" value="<?php echo h($redirect); ?>">
 
                     <div class="login-field">
