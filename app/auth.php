@@ -181,8 +181,13 @@ function member_register(PDO $pdo, string $name, string $email, string $password
 
     $name = trim($name);
     $email = trim($email);
-    $requestedRole = member_registration_role($options['requested_role'] ?? 'member');
+    $requestedRole   = member_registration_role($options['requested_role'] ?? 'member');
     $doctorLicenseNo = trim((string) ($options['doctor_license_no'] ?? ''));
+    $lastName        = trim((string) ($options['last_name'] ?? ''));
+    $hospitalClinic  = trim((string) ($options['hospital_clinic'] ?? ''));
+    $province        = trim((string) ($options['province'] ?? ''));
+    $phone           = trim((string) ($options['phone'] ?? ''));
+    $lineId          = trim((string) ($options['line_id'] ?? ''));
 
     if ($name === '' || $email === '' || $password === '') {
         $error = 'กรุณากรอกข้อมูลให้ครบ';
@@ -208,15 +213,22 @@ function member_register(PDO $pdo, string $name, string $email, string $password
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("
-        INSERT INTO admin_users (email, password_hash, name, role, requested_role, doctor_license_no, is_active, created_at)
-        VALUES (?, ?, ?, 'member', ?, ?, 1, NOW())
+        INSERT INTO admin_users
+            (email, password_hash, name, last_name, role, requested_role, doctor_license_no,
+             hospital_clinic, province, phone, line_id, is_active, created_at)
+        VALUES (?, ?, ?, ?, 'member', ?, ?, ?, ?, ?, ?, 1, NOW())
     ");
     $stmt->execute([
         $email,
         $hash,
         $name,
+        $lastName !== '' ? $lastName : null,
         $requestedRole,
         $doctorLicenseNo !== '' ? $doctorLicenseNo : null,
+        $hospitalClinic !== '' ? $hospitalClinic : null,
+        $province !== '' ? $province : null,
+        $phone !== '' ? $phone : null,
+        $lineId !== '' ? $lineId : null,
     ]);
 
     $_SESSION['member_id'] = (int) $pdo->lastInsertId();

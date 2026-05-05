@@ -63,7 +63,7 @@ if (!function_exists('site_header_link_classes')) {
     .kna-site-header__brand img {
         display: block;
         width: auto;
-        height: 74px;
+        height: 52px;
         max-width: min(100%, 210px);
     }
 
@@ -269,7 +269,7 @@ if (!function_exists('site_header_link_classes')) {
         }
 
         .kna-site-header__brand img {
-            height: 58px;
+            height: 44px;
         }
     }
 </style>

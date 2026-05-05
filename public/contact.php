@@ -8,36 +8,12 @@ $success_message = '';
 $db_ready = $pdo instanceof PDO;
 
 $form = [
-    'name' => '',
-    'email' => '',
-    'phone' => '',
+    'name'    => '',
+    'email'   => '',
+    'phone'   => '',
     'subject' => '',
     'message' => '',
 ];
-
-$company = [
-    'name' => 'K.N.A. Inter Pharma Co., Ltd.',
-    'address' => "175-175/1 ถ.สวรรค์วิถี ต.ปากน้ำโพ\nอ.เมืองนครสวรรค์ จ.นครสวรรค์ 60000",
-    'phone' => '056-200890',
-    'email' => 'info@knainterpharma.co.th',
-    'website' => 'https://knainterpharma.co.th',
-    'hours' => 'วันจันทร์ - ศุกร์ 09:00 - 18:00 น.',
-];
-
-$featured_clinics = [];
-if ($db_ready) {
-    try {
-        $featured_clinics = $pdo->query(
-            'SELECT name, province, district, phone, map_url
-             FROM clinics
-             WHERE is_active = 1
-             ORDER BY id DESC
-             LIMIT 3'
-        )->fetchAll();
-    } catch (Exception $e) {
-        $featured_clinics = [];
-    }
-}
 
 if ($db_ready) {
     try {
@@ -53,9 +29,7 @@ if ($db_ready) {
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
-    } catch (Exception $e) {
-        $errors[] = 'ไม่สามารถเตรียมระบบรับข้อความติดต่อได้';
-    }
+    } catch (Exception $e) {}
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -63,26 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'คำขอไม่ถูกต้อง กรุณาลองใหม่';
     }
 
-    foreach ($form as $field => $value) {
+    foreach ($form as $field => $_) {
         $form[$field] = trim((string) ($_POST[$field] ?? ''));
     }
 
-    if ($form['name'] === '') {
-        $errors[] = 'กรุณากรอกชื่อผู้ติดต่อ';
-    }
-    if ($form['email'] === '' || !filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
+    if ($form['name'] === '')   $errors[] = 'กรุณากรอกชื่อผู้ติดต่อ';
+    if ($form['email'] === '' || !filter_var($form['email'], FILTER_VALIDATE_EMAIL))
         $errors[] = 'กรุณากรอกอีเมลให้ถูกต้อง';
-    }
-    if ($form['subject'] === '') {
-        $errors[] = 'กรุณากรอกหัวข้อ';
-    }
-    if ($form['message'] === '') {
-        $errors[] = 'กรุณากรอกรายละเอียดข้อความ';
-    }
-
-    if (!$db_ready) {
-        $errors[] = 'ระบบฐานข้อมูลยังไม่พร้อมสำหรับรับข้อความ';
-    }
+    if ($form['subject'] === '') $errors[] = 'กรุณากรอกหัวข้อ';
+    if ($form['message'] === '') $errors[] = 'กรุณากรอกรายละเอียดข้อความ';
+    if (!$db_ready)              $errors[] = 'ระบบฐานข้อมูลยังไม่พร้อม';
 
     if (empty($errors) && $db_ready) {
         try {
@@ -97,11 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form['subject'],
                 $form['message'],
             ]);
-
             $success_message = 'ส่งข้อความเรียบร้อยแล้ว ทีมงานจะติดต่อกลับโดยเร็วที่สุด';
-            foreach ($form as $field => $value) {
-                $form[$field] = '';
-            }
+            foreach ($form as $field => $_) { $form[$field] = ''; }
         } catch (Exception $e) {
             $errors[] = 'ไม่สามารถบันทึกข้อความได้ กรุณาลองใหม่อีกครั้ง';
         }
@@ -118,333 +79,243 @@ $siteHeaderActive = 'contact';
     <title><?php echo h($page_title); ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Kanit', sans-serif;
-            background:
-                radial-gradient(circle at top left, rgba(79, 70, 229, 0.10), transparent 30%),
-                radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 24%),
-                linear-gradient(180deg, #f8fbff 0%, #eef4ff 34%, #ffffff 100%);
-        }
+        body { font-family: 'Kanit', sans-serif; }
+        .branch-card { transition: box-shadow .2s; }
+        .branch-card:hover { box-shadow: 0 8px 32px rgba(75,72,153,0.13); }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="bg-gray-50">
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
-    <section class="relative overflow-hidden">
-        <div class="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_32%),linear-gradient(135deg,#0f172a_0%,#312e81_52%,#7c3aed_100%)]"></div>
-        <div class="absolute right-[-120px] top-16 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
-        <div class="absolute left-[-80px] bottom-0 h-60 w-60 rounded-full bg-cyan-300/20 blur-3xl"></div>
-
-        <div class="relative mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-24">
-            <div class="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
-                <div class="text-white">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur">
-                        <i class="fa-solid fa-envelope-open-text"></i>
-                        Premium Contact Experience
-                    </div>
-                    <h1 class="mt-6 max-w-3xl text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
-                        ติดต่อทีม KNA Interpharma
-                        อย่างมั่นใจและตรงประเด็น
-                    </h1>
-                    <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
-                        สำหรับข้อมูลผลิตภัณฑ์ ความร่วมมือกับคลินิก การสอบถามบริการ และการติดต่อทีมงานโดยตรง
-                        หน้านี้ถูกออกแบบให้ชัดเจน ใช้งานง่าย และสะท้อนภาพลักษณ์แบรนด์ในโทน Premium Clinical
-                    </p>
-
-                    <div class="mt-8 grid gap-4 sm:grid-cols-3">
-                        <div class="rounded-3xl border border-white/12 bg-white/10 p-5 backdrop-blur">
-                            <div class="text-sm uppercase tracking-[0.2em] text-slate-300">Response</div>
-                            <div class="mt-3 text-2xl font-bold">รวดเร็ว</div>
-                            <div class="mt-2 text-sm leading-6 text-slate-200">ข้อความถูกส่งเข้าระบบโดยตรงเพื่อให้ทีมงานตรวจสอบได้ทันที</div>
-                        </div>
-                        <div class="rounded-3xl border border-white/12 bg-white/10 p-5 backdrop-blur">
-                            <div class="text-sm uppercase tracking-[0.2em] text-slate-300">Channels</div>
-                            <div class="mt-3 text-2xl font-bold">ครบถ้วน</div>
-                            <div class="mt-2 text-sm leading-6 text-slate-200">โทร อีเมล และแผนที่บริษัทพร้อมใช้งานจากหน้าเดียว</div>
-                        </div>
-                        <div class="rounded-3xl border border-white/12 bg-white/10 p-5 backdrop-blur">
-                            <div class="text-sm uppercase tracking-[0.2em] text-slate-300">Trust</div>
-                            <div class="mt-3 text-2xl font-bold">น่าเชื่อถือ</div>
-                            <div class="mt-2 text-sm leading-6 text-slate-200">จัดวางข้อมูลสำคัญแบบมืออาชีพ เหมาะกับแบรนด์ทางการแพทย์และความงาม</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-[32px] border border-white/30 bg-white/92 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur sm:p-8">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <div class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Direct Line</div>
-                            <h2 class="mt-3 text-3xl font-extrabold text-slate-950">ข้อมูลติดต่อหลัก</h2>
-                            <p class="mt-3 text-base leading-7 text-slate-600">
-                                หากคุณต้องการพูดคุยกับทีมงานโดยตรง สามารถเริ่มจากช่องทางที่สะดวกที่สุดด้านล่างได้ทันที
-                            </p>
-                        </div>
-                        <div class="hidden h-16 w-16 items-center justify-center rounded-3xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 sm:flex">
-                            <i class="fa-solid fa-headset text-xl"></i>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 space-y-4">
-                        <a href="tel:<?php echo h($company['phone']); ?>" class="group flex items-start gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 px-5 py-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-lg">
-                            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                <i class="fa-solid fa-phone-volume"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Phone</div>
-                                <div class="mt-1 text-2xl font-bold text-slate-950"><?php echo h($company['phone']); ?></div>
-                                <div class="mt-1 text-sm text-slate-500">โทรหาเราในเวลาทำการเพื่อรับคำแนะนำเบื้องต้น</div>
-                            </div>
-                        </a>
-
-                        <a href="mailto:<?php echo h($company['email']); ?>" class="group flex items-start gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 px-5 py-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-lg">
-                            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                <i class="fa-solid fa-envelope"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Email</div>
-                                <div class="mt-1 text-xl font-bold text-slate-950 break-all"><?php echo h($company['email']); ?></div>
-                                <div class="mt-1 text-sm text-slate-500">เหมาะสำหรับการส่งรายละเอียดและการติดต่อเชิงธุรกิจ</div>
-                            </div>
-                        </a>
-
-                        <div class="flex items-start gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 px-5 py-4">
-                            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                <i class="fa-solid fa-location-dot"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Office</div>
-                                <div class="mt-1 whitespace-pre-line text-base font-medium leading-7 text-slate-800"><?php echo h($company['address']); ?></div>
-                                <a href="<?php echo h($company['website']); ?>" target="_blank" rel="noreferrer" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 hover:text-indigo-900">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>เว็บไซต์บริษัท
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Hero Banner -->
+    <section class="relative bg-gradient-to-r from-[#4B4899] to-[#6B63C8] py-20">
+        <div class="absolute inset-0 bg-black bg-opacity-20"></div>
+        <div class="relative container mx-auto px-4 text-center text-white">
+            <h1 class="text-5xl font-bold mb-3">Contact Us</h1>
+            <p class="text-2xl font-light">ติดต่อเรา</p>
+            <div class="mt-6 flex justify-center gap-2 text-sm text-white/70">
+                <a href="/index.php" class="hover:text-white">Home</a>
+                <span>/</span>
+                <span class="text-white">Contact Us</span>
             </div>
         </div>
     </section>
 
-    <section class="relative z-10 -mt-8 pb-8">
-        <div class="mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
-            <div class="rounded-[28px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div class="flex items-center gap-4">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                        <i class="fa-solid fa-clock"></i>
+    <!-- Two Branch Sections -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <div class="grid md:grid-cols-2 gap-8">
+
+                <!-- Bangkok Branch -->
+                <div class="branch-card bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100" style="background: linear-gradient(135deg,#4B4899 0%,#6B63C8 100%);">
+                        <div class="flex items-center gap-3 text-white">
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-building text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-white/70 text-xs uppercase tracking-widest">Branch</p>
+                                <h2 class="text-xl font-bold">สาขากรุงเทพมหานคร</h2>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Working Hours</div>
-                        <div class="mt-1 text-lg font-bold text-slate-950"><?php echo h($company['hours']); ?></div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex gap-3">
+                            <i class="fa-solid fa-location-dot text-[#4B4899] mt-1 w-5 text-center shrink-0"></i>
+                            <p class="text-gray-700 leading-relaxed">
+                                877/10 nirvana@work ถ.พระราม 9<br>
+                                เขตสวนหลวง กรุงเทพมหานคร 10250
+                            </p>
+                        </div>
+                        <a href="https://maps.app.goo.gl/jEueCJzFEz2pAtBr8" target="_blank" rel="noreferrer"
+                           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
+                           style="background:#4B4899;">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            เปิดแผนที่ Google Maps
+                        </a>
+                    </div>
+                    <div class="h-64 w-full">
+                        <iframe
+                            title="KNA สาขากรุงเทพมหานคร"
+                            src="https://www.google.com/maps?q=877/10+nirvana@work+Rama+9+Suan+Luang+Bangkok+10250&output=embed"
+                            class="w-full h-full border-0"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
                     </div>
                 </div>
-            </div>
-            <div class="rounded-[28px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div class="flex items-center gap-4">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
-                        <i class="fa-solid fa-user-group"></i>
+
+                <!-- Nakhon Sawan Branch -->
+                <div class="branch-card bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100" style="background: linear-gradient(135deg,#4B4899 0%,#6B63C8 100%);">
+                        <div class="flex items-center gap-3 text-white">
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-hospital text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-white/70 text-xs uppercase tracking-widest">Head Office</p>
+                                <h2 class="text-xl font-bold">สาขานครสวรรค์</h2>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Support Flow</div>
-                        <div class="mt-1 text-lg font-bold text-slate-950">ฝ่ายขาย ฝ่ายประสานงาน และข้อมูลคลินิก</div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex gap-3">
+                            <i class="fa-solid fa-location-dot text-[#4B4899] mt-1 w-5 text-center shrink-0"></i>
+                            <p class="text-gray-700 leading-relaxed">
+                                175-175/1 ถ.สวรรค์วิถี ต.ปากน้ำโพ<br>
+                                อ.เมืองนครสวรรค์ จ.นครสวรรค์ 60000
+                            </p>
+                        </div>
+                        <div class="flex gap-3">
+                            <i class="fa-solid fa-phone text-[#4B4899] mt-1 w-5 text-center shrink-0"></i>
+                            <a href="tel:056200890" class="text-gray-700 hover:text-[#4B4899] font-medium">056-200890</a>
+                        </div>
+                        <a href="https://maps.app.goo.gl/esPWwrKxv9BUowuXA" target="_blank" rel="noreferrer"
+                           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
+                           style="background:#4B4899;">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            เปิดแผนที่ Google Maps
+                        </a>
+                    </div>
+                    <div class="h-64 w-full">
+                        <iframe
+                            title="KNA สาขานครสวรรค์"
+                            src="https://www.google.com/maps?q=175-175/1+%E0%B8%96.%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C%E0%B8%A7%E0%B8%B4%E0%B8%96%E0%B8%B5+%E0%B8%95.%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B9%82%E0%B8%9E+%E0%B8%AD.%E0%B9%80%E0%B8%A1%E0%B8%B7%E0%B8%AD%E0%B8%87%E0%B8%99%E0%B8%84%E0%B8%A3%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C&output=embed"
+                            class="w-full h-full border-0"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
                     </div>
                 </div>
-            </div>
-            <div class="rounded-[28px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div class="flex items-center gap-4">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-                        <i class="fa-solid fa-shield-heart"></i>
-                    </div>
-                    <div>
-                        <div class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Brand Tone</div>
-                        <div class="mt-1 text-lg font-bold text-slate-950">Professional, Premium, Clinical</div>
-                    </div>
-                </div>
+
             </div>
         </div>
     </section>
 
-    <section class="pb-20 pt-8">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-                <div class="rounded-[36px] border border-slate-200 bg-white/95 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-10">
-                    <div class="flex flex-wrap items-start justify-between gap-5">
-                        <div>
-                            <div class="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-600">Message Form</div>
-                            <h2 class="mt-3 text-3xl font-extrabold text-slate-950 sm:text-4xl">ส่งข้อความถึงเรา</h2>
-                            <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-                                กรอกข้อมูลให้ครบเพื่อให้ทีมงานของเราเข้าใจความต้องการของคุณได้ชัดเจนขึ้น
-                                และสามารถติดต่อกลับได้อย่างรวดเร็วและตรงจุด
-                            </p>
-                        </div>
-                        <div class="hidden h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-500/20 md:flex">
-                            <i class="fa-solid fa-paper-plane text-xl"></i>
-                        </div>
+    <!-- Additional Contact Channels -->
+    <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <h2 class="text-3xl font-bold text-center mb-12" style="color:#4B4899;">ช่องทางการติดต่อเพิ่มเติม</h2>
+            <div class="grid sm:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#EEF0FA;">
+                        <i class="fa-solid fa-envelope text-2xl" style="color:#4B4899;"></i>
                     </div>
-
-                    <?php if ($success_message !== ''): ?>
-                        <div class="mt-8 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700">
-                            <?php echo h($success_message); ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($errors)): ?>
-                        <div class="mt-8 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-700">
-                            <ul class="list-disc space-y-1 pl-5">
-                                <?php foreach ($errors as $error): ?>
-                                    <li><?php echo h($error); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-
-                    <form method="post" class="mt-8 space-y-6">
-                        <?php echo csrf_field(); ?>
-                        <div class="grid gap-5 md:grid-cols-2">
-                            <label class="block">
-                                <span class="mb-2 block text-sm font-semibold text-slate-700">ชื่อผู้ติดต่อ</span>
-                                <input type="text" name="name" value="<?php echo h($form['name']); ?>" class="w-full rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100" required>
-                            </label>
-                            <label class="block">
-                                <span class="mb-2 block text-sm font-semibold text-slate-700">อีเมล</span>
-                                <input type="email" name="email" value="<?php echo h($form['email']); ?>" class="w-full rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100" required>
-                            </label>
-                        </div>
-
-                        <div class="grid gap-5 md:grid-cols-2">
-                            <label class="block">
-                                <span class="mb-2 block text-sm font-semibold text-slate-700">เบอร์โทรศัพท์</span>
-                                <input type="text" name="phone" value="<?php echo h($form['phone']); ?>" class="w-full rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100" placeholder="08X-XXX-XXXX">
-                            </label>
-                            <label class="block">
-                                <span class="mb-2 block text-sm font-semibold text-slate-700">หัวข้อ</span>
-                                <input type="text" name="subject" value="<?php echo h($form['subject']); ?>" class="w-full rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100" required>
-                            </label>
-                        </div>
-
-                        <label class="block">
-                            <span class="mb-2 block text-sm font-semibold text-slate-700">รายละเอียดข้อความ</span>
-                            <textarea name="message" rows="8" class="w-full rounded-[24px] border border-slate-300 bg-slate-50/60 px-4 py-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100" required><?php echo h($form['message']); ?></textarea>
-                        </label>
-
-                        <div class="flex flex-wrap items-center gap-4">
-                            <button type="submit" class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl">
-                                <i class="fa-solid fa-paper-plane"></i>
-                                ส่งข้อความ
-                            </button>
-                            <a href="tel:<?php echo h($company['phone']); ?>" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-7 py-3.5 text-base font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                <i class="fa-solid fa-phone"></i>
-                                โทรหาเรา
-                            </a>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="space-y-8">
-                    <div class="rounded-[36px] border border-slate-200 bg-white/95 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-8">
-                        <div class="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-600">Contact Details</div>
-                        <h2 class="mt-3 text-3xl font-extrabold text-slate-950">ข้อมูลติดต่อ</h2>
-                        <div class="mt-8 space-y-5">
-                            <div class="flex gap-4">
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-950">ที่อยู่บริษัท</div>
-                                    <div class="mt-1 whitespace-pre-line text-slate-600"><?php echo h($company['address']); ?></div>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                    <i class="fa-solid fa-phone-volume"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-950">โทรศัพท์</div>
-                                    <a href="tel:<?php echo h($company['phone']); ?>" class="mt-1 inline-block text-slate-600 transition hover:text-indigo-700"><?php echo h($company['phone']); ?></a>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                    <i class="fa-solid fa-envelope"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-950">อีเมล</div>
-                                    <a href="mailto:<?php echo h($company['email']); ?>" class="mt-1 inline-block break-all text-slate-600 transition hover:text-indigo-700"><?php echo h($company['email']); ?></a>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                                    <i class="fa-solid fa-clock"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-950">เวลาทำการ</div>
-                                    <div class="mt-1 text-slate-600"><?php echo h($company['hours']); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-[36px] border border-slate-200 bg-white/95 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-8">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <div class="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-600">Clinic Network</div>
-                                <h2 class="mt-3 text-3xl font-extrabold text-slate-950">คลินิกพาร์ตเนอร์ล่าสุด</h2>
-                            </div>
-                            <div class="hidden h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 sm:flex">
-                                <i class="fa-solid fa-hospital-user"></i>
-                            </div>
-                        </div>
-
-                        <?php if (empty($featured_clinics)): ?>
-                            <div class="mt-6 rounded-3xl border border-dashed border-slate-300 px-5 py-6 text-slate-500">
-                                ยังไม่มีข้อมูลคลินิกแสดงในขณะนี้
-                            </div>
-                        <?php else: ?>
-                            <div class="mt-6 space-y-4">
-                                <?php foreach ($featured_clinics as $clinic): ?>
-                                    <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 transition hover:border-indigo-200 hover:bg-white">
-                                        <div class="text-lg font-bold text-slate-950"><?php echo h($clinic['name'] ?? ''); ?></div>
-                                        <div class="mt-1 text-sm text-slate-500">
-                                            <?php echo h(trim(($clinic['district'] ?? '') . ' ' . ($clinic['province'] ?? ''))); ?>
-                                        </div>
-                                        <div class="mt-4 flex flex-wrap gap-4 text-sm">
-                                            <?php if (!empty($clinic['phone'])): ?>
-                                                <a href="tel:<?php echo h($clinic['phone']); ?>" class="inline-flex items-center gap-2 font-medium text-indigo-700 hover:text-indigo-900">
-                                                    <i class="fa-solid fa-phone"></i><?php echo h($clinic['phone']); ?>
-                                                </a>
-                                            <?php endif; ?>
-                                            <?php if (!empty($clinic['map_url'])): ?>
-                                                <a href="<?php echo h($clinic['map_url']); ?>" target="_blank" rel="noreferrer" class="inline-flex items-center gap-2 font-medium text-slate-600 hover:text-indigo-700">
-                                                    <i class="fa-solid fa-map-location-dot"></i>เปิดแผนที่
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-8 overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-6 py-5 sm:px-8">
-                    <div>
-                        <div class="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-600">Office Map</div>
-                        <h2 class="mt-2 text-2xl font-extrabold text-slate-950">แผนที่บริษัท</h2>
-                    </div>
-                    <a href="https://www.google.com/maps?q=175-175/1%20%E0%B8%96.%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C%E0%B8%A7%E0%B8%B4%E0%B8%96%E0%B8%B5%20%E0%B8%95.%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B9%82%E0%B8%9E%20%E0%B8%AD.%E0%B9%80%E0%B8%A1%E0%B8%B7%E0%B8%AD%E0%B8%87%E0%B8%99%E0%B8%84%E0%B8%A3%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C" target="_blank" rel="noreferrer" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i>เปิดบน Google Maps
+                    <h3 class="font-bold text-gray-800 mb-2">อีเมล</h3>
+                    <a href="mailto:info@knainterpharma.co.th" class="text-sm text-gray-600 hover:text-[#4B4899] break-all">
+                        info@knainterpharma.co.th
                     </a>
                 </div>
-                <iframe
-                    title="KNA Interpharma Map"
-                    src="https://www.google.com/maps?q=175-175/1%20%E0%B8%96.%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C%E0%B8%A7%E0%B8%B4%E0%B8%96%E0%B8%B5%20%E0%B8%95.%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B9%82%E0%B8%9E%20%E0%B8%AD.%E0%B9%80%E0%B8%A1%E0%B8%B7%E0%B8%AD%E0%B8%87%E0%B8%99%E0%B8%84%E0%B8%A3%E0%B8%AA%E0%B8%A7%E0%B8%A3%E0%B8%A3%E0%B8%84%E0%B9%8C&output=embed"
-                    class="h-[420px] w-full border-0"
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade">
-                </iframe>
+                <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#EEF0FA;">
+                        <i class="fa-solid fa-clock text-2xl" style="color:#4B4899;"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">เวลาทำการ</h3>
+                    <p class="text-sm text-gray-600">จันทร์ - ศุกร์<br>09:00 - 17:00 น.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#EEF0FA;">
+                        <i class="fa-solid fa-share-nodes text-2xl" style="color:#4B4899;"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">โซเชียลมีเดีย</h3>
+                    <div class="flex justify-center gap-4 mt-2">
+                        <a href="#" class="text-gray-400 hover:text-[#4B4899] text-xl transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-black text-xl transition"><i class="fa-brands fa-tiktok"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-pink-500 text-xl transition"><i class="fa-brands fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA: We Are Ready to Assist You -->
+    <section class="py-20" style="background: linear-gradient(135deg,#4B4899 0%,#6B63C8 100%);">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h2 class="text-4xl font-bold mb-4">We Are Ready to Assist You</h2>
+            <p class="text-white/80 text-lg mb-10 max-w-xl mx-auto">
+                ทีมงาน KNA พร้อมให้คำปรึกษาและตอบทุกคำถามของคุณ ติดต่อเราได้ทันที
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="tel:056200890"
+                   class="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base bg-white transition hover:bg-gray-100"
+                   style="color:#4B4899;">
+                    <i class="fa-solid fa-phone"></i>
+                    โทรติดต่อเรา
+                </a>
+                <a href="/searchpage.php"
+                   class="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base border-2 border-white text-white transition hover:bg-white/10">
+                    <i class="fa-solid fa-magnifying-glass-location"></i>
+                    ค้นหาคลินิก
+                </a>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="mt-14 max-w-2xl mx-auto bg-white/10 backdrop-blur rounded-3xl p-8 text-left border border-white/20">
+                <h3 class="text-2xl font-bold text-white mb-6 text-center">ส่งข้อความถึงเรา</h3>
+
+                <?php if ($success_message !== ''): ?>
+                    <div class="mb-6 rounded-xl bg-green-500/20 border border-green-400/30 px-5 py-4 text-green-100">
+                        <?php echo h($success_message); ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($errors)): ?>
+                    <div class="mb-6 rounded-xl bg-red-500/20 border border-red-400/30 px-5 py-4 text-red-100">
+                        <ul class="list-disc pl-5 space-y-1">
+                            <?php foreach ($errors as $e): ?>
+                                <li><?php echo h($e); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <form method="post" class="space-y-4">
+                    <?php echo csrf_field(); ?>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-white/80 mb-1">ชื่อผู้ติดต่อ *</label>
+                            <input type="text" name="name" value="<?php echo h($form['name']); ?>" required
+                                class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/60"
+                                placeholder="ชื่อของคุณ">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-white/80 mb-1">อีเมล *</label>
+                            <input type="email" name="email" value="<?php echo h($form['email']); ?>" required
+                                class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/60"
+                                placeholder="email@example.com">
+                        </div>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-white/80 mb-1">เบอร์โทรศัพท์</label>
+                            <input type="text" name="phone" value="<?php echo h($form['phone']); ?>"
+                                class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/60"
+                                placeholder="08X-XXX-XXXX">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-white/80 mb-1">หัวข้อ *</label>
+                            <input type="text" name="subject" value="<?php echo h($form['subject']); ?>" required
+                                class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/60"
+                                placeholder="หัวข้อการติดต่อ">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-white/80 mb-1">รายละเอียดข้อความ *</label>
+                        <textarea name="message" rows="5" required
+                            class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/60"
+                            placeholder="รายละเอียดที่ต้องการติดต่อ..."><?php echo h($form['message']); ?></textarea>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-white font-bold text-base transition hover:bg-gray-100"
+                            style="color:#4B4899;">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            ส่งข้อความ
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </section>

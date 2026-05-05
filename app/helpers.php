@@ -138,8 +138,13 @@ function ensure_admin_user_registration_columns(PDO $pdo): void
     $checked = true;
 
     $columns = [
-        'requested_role' => "ALTER TABLE admin_users ADD COLUMN requested_role VARCHAR(40) NOT NULL DEFAULT 'member' AFTER role",
-        'doctor_license_no' => "ALTER TABLE admin_users ADD COLUMN doctor_license_no VARCHAR(120) NULL AFTER requested_role",
+        'requested_role'   => "ALTER TABLE admin_users ADD COLUMN requested_role VARCHAR(40) NOT NULL DEFAULT 'member' AFTER role",
+        'doctor_license_no'=> "ALTER TABLE admin_users ADD COLUMN doctor_license_no VARCHAR(120) NULL AFTER requested_role",
+        'last_name'        => "ALTER TABLE admin_users ADD COLUMN last_name VARCHAR(120) NULL",
+        'hospital_clinic'  => "ALTER TABLE admin_users ADD COLUMN hospital_clinic VARCHAR(220) NULL",
+        'province'         => "ALTER TABLE admin_users ADD COLUMN province VARCHAR(120) NULL",
+        'phone'            => "ALTER TABLE admin_users ADD COLUMN phone VARCHAR(50) NULL",
+        'line_id'          => "ALTER TABLE admin_users ADD COLUMN line_id VARCHAR(120) NULL",
     ];
 
     foreach ($columns as $columnName => $sql) {
