@@ -8,3 +8,4 @@ public/uploads/
 Thumbs.db
 .vscode/
 .idea/
+deploy/seed-data.sql
