@@ -29,6 +29,14 @@ define('DB_NAME', $_ENV['DB_NAME'] ?? 'kna_site');
 define('DB_USER', $_ENV['DB_USER'] ?? 'root');
 define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 
+define('S3_BUCKET', $_ENV['S3_BUCKET'] ?? '');
+define('S3_REGION', $_ENV['S3_REGION'] ?? 'ap-southeast-1');
+define('S3_KEY',    $_ENV['S3_KEY']    ?? '');
+define('S3_SECRET', $_ENV['S3_SECRET'] ?? '');
+define('S3_URL',    $_ENV['S3_URL']    ?? '');
+define('S3_ENDPOINT', $_ENV['S3_ENDPOINT'] ?? '');
+define('S3_PATH_STYLE', filter_var($_ENV['S3_PATH_STYLE'] ?? false, FILTER_VALIDATE_BOOL));
+
 // Error reporting
 if (APP_ENV === 'development') {
     error_reporting(E_ALL);
@@ -76,7 +84,7 @@ if (!headers_sent()) {
         . "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         . "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         . "img-src 'self' data: https:; "
-        . "frame-src https://www.tiktok.com https://www.youtube.com https://www.google.com; "
+        . "frame-src https://www.tiktok.com https://www.youtube.com https://www.youtube-nocookie.com https://www.facebook.com https://www.google.com; "
         . "connect-src 'self';"
     );
 }

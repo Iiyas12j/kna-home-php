@@ -79,13 +79,6 @@ $homeVideos = array_slice($videoItems, 0, 4);
 $search = '';
 $province = '';
 $selectedProductIds = [];
-$hasTikTok = false;
-foreach ($homeVideos as $video) {
-    if (tiktok_video_id($video['video_url'] ?? '')) {
-        $hasTikTok = true;
-        break;
-    }
-}
 $siteHeaderActive = 'home';
 ?>
 <!doctype html>
@@ -252,61 +245,49 @@ $siteHeaderActive = 'home';
     </div>
 </section>
 
-<section id="products" class="py-16 bg-white">
-    <div class="container mx-auto px-4">
-        <div class="text-center mb-12">
-            <h2 class="text-4xl font-bold mb-4">Our Products</h2>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            <?php foreach ($homeProducts as $p): ?>
-                <?php $img = media_url($p['hero_image'] ?? '', 'products', '/uploads/product1.jpg'); ?>
-                <a href="/single-product.php?id=<?php echo (int) ($p['id'] ?? 0); ?>" class="group block">
-                    <div class="relative overflow-hidden rounded-2xl shadow-lg">
-                        <img src="<?php echo h($img); ?>" alt="<?php echo h($p['name'] ?? ''); ?>" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
-                        </div>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-            <?php if (empty($homeProducts)): ?>
-                <div class="col-span-full text-center text-gray-500">ยังไม่มีสินค้าที่เปิดใช้งาน</div>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-
-<section id="gallery" class="py-14 bg-gray-50">
-    <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold mb-8 text-center">แกลเลอรี่สินค้า</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-            <?php foreach (array_slice($galleryItems, 0, 4) as $item): ?>
-                <?php $img = media_url($item['image_path'] ?? '', 'website', '/uploads/p1.png'); ?>
-                <div class="relative overflow-hidden rounded-xl shadow-md group">
-                    <img src="<?php echo h($img); ?>" alt="<?php echo h($item['title'] ?? 'Gallery'); ?>" class="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500">
-                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white font-semibold">
-                        <?php echo h($item['title'] ?? 'ไม่มีชื่อ'); ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-            <?php if (empty($galleryItems)): ?>
-                <div class="col-span-full text-center text-gray-500">ยังไม่มีรูปแกลเลอรี่</div>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-
 <section id="groups" class="py-14 bg-white">
     <div class="container mx-auto px-4">
         <h2 class="text-3xl font-bold mb-8 text-center">กลุ่มผลิตภัณฑ์</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-7xl mx-auto">
+            <?php
+            // Match group titles (which may be misspelled) to real products for detail links.
+            $groupProductLink = static function (string $title) use ($products): string {
+                $normalize = static fn (string $v) => preg_replace('/[^a-z]/', '', strtolower($v));
+                $needle = $normalize($title);
+                if ($needle === '') {
+                    return '/product.php';
+                }
+                $bestId = 0;
+                $bestDistance = PHP_INT_MAX;
+                foreach ($products as $product) {
+                    $candidate = $normalize((string) ($product['name'] ?? ''));
+                    if ($candidate === '') {
+                        continue;
+                    }
+                    $distance = levenshtein($needle, $candidate);
+                    if (str_contains($needle, $candidate) || str_contains($candidate, $needle)) {
+                        $distance = min($distance, 1);
+                    }
+                    if ($distance < $bestDistance) {
+                        $bestDistance = $distance;
+                        $bestId = (int) $product['id'];
+                    }
+                }
+                return ($bestId > 0 && $bestDistance <= 3) ? '/single-product.php?id=' . $bestId : '/product.php';
+            };
+            ?>
             <?php foreach (array_slice($groupItems, 0, 4) as $item): ?>
                 <?php $img = media_url($item['image_path'] ?? '', 'website', '/uploads/p2.jpg'); ?>
-                <div class="relative overflow-hidden rounded-xl shadow-md group">
-                    <img src="<?php echo h($img); ?>" alt="<?php echo h($item['title'] ?? 'Group'); ?>" class="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500">
-                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white font-semibold">
-                        <?php echo h($item['title'] ?? 'ไม่มีชื่อ'); ?>
+                <?php $itemTitle = (string) ($item['title'] ?? ''); ?>
+                <a href="<?php echo h($groupProductLink($itemTitle)); ?>" class="group block">
+                    <div class="relative overflow-hidden rounded-xl shadow-md h-72">
+                        <img src="<?php echo h($img); ?>" alt="<?php echo h($item['title'] ?? 'Group'); ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white font-semibold flex items-center justify-between">
+                            <span><?php echo h($item['title'] ?? 'ไม่มีชื่อ'); ?></span>
+                            <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 transition duration-300 group-hover:opacity-100 group-hover:translate-x-0"></i>
+                        </div>
                     </div>
-                </div>
+                </a>
             <?php endforeach; ?>
             <?php if (empty($groupItems)): ?>
                 <div class="col-span-full text-center text-gray-500">ยังไม่มีกลุ่มผลิตภัณฑ์</div>
@@ -318,7 +299,7 @@ $siteHeaderActive = 'home';
 <section id="news" class="py-16 bg-white">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
-            <h2 class="text-4xl font-bold mb-4">NEWS & EVENTS</h2>
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">NEWS & EVENTS</h2>
             <p class="text-gray-600 text-lg">ข่าวสารและกิจกรรมล่าสุด</p>
         </div>
         <div class="grid md:grid-cols-2 gap-6 max-w-7xl mx-auto">
@@ -368,11 +349,12 @@ $siteHeaderActive = 'home';
                 <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
                     <div class="aspect-[9/16] bg-gray-100">
                         <?php if ($videoId): ?>
-                            <blockquote class="tiktok-embed" cite="<?php echo h($videoUrl); ?>" data-video-id="<?php echo h($videoId); ?>" style="max-width:100%;min-width:100%;height:100%;margin:0;">
-                                <section>
-                                    <a target="_blank" title="TikTok" href="<?php echo h($videoUrl); ?>">TikTok</a>
-                                </section>
-                            </blockquote>
+                            <iframe
+                                src="https://www.tiktok.com/player/v1/<?php echo h($videoId); ?>?music_info=0&description=0&rel=0"
+                                title="<?php echo h($video['title'] ?? 'TikTok'); ?>"
+                                allow="fullscreen"
+                                loading="lazy"
+                                style="display:block;width:100%;height:100%;border:0;"></iframe>
                         <?php else: ?>
                             <a href="<?php echo h($videoUrl !== '' ? $videoUrl : '#'); ?>" target="_blank" rel="noopener">
                                 <img src="<?php echo h($thumb); ?>" alt="<?php echo h($video['title'] ?? 'Video'); ?>" class="w-full h-full object-cover">
@@ -421,10 +403,6 @@ $siteHeaderActive = 'home';
         setInterval(function () { changeSlide(1); }, 4500);
     }
 </script>
-
-<?php if ($hasTikTok): ?>
-    <script async src="https://www.tiktok.com/embed.js"></script>
-<?php endif; ?>
 
 </body>
 </html>

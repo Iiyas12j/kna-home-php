@@ -17,12 +17,17 @@
 <body class="bg-gray-50">
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 <!-- Hero Banner -->
-    <section class="relative h-96 overflow-hidden">
-        <img src="/uploads/about/about-banner-1-1024x382.jpg" alt="About Us Banner" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-            <div class="text-center text-white">
-                <h1 class="text-5xl font-bold mb-4">About Us</h1>
-                <p class="text-xl">เกี่ยวกับเรา</p>
+    <section class="relative overflow-hidden">
+        <img src="/uploads/about/about-banner-1-1024x382.jpg" alt="About Us Banner" class="absolute inset-0 h-full w-full object-cover">
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div class="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8">
+            <div class="max-w-2xl ml-auto text-right">
+                <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur">
+                    <i class="fa-solid fa-building"></i> About Us
+                </div>
+                <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
+                    เกี่ยวกับเรา<br class="hidden sm:block">KNA Interpharma
+                </h1>
             </div>
         </div>
     </section>

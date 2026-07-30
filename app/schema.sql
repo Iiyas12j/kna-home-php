@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS products (
   name VARCHAR(190) NOT NULL,
   short_description TEXT NULL,
   hero_image VARCHAR(255) NULL,
+  logo_image VARCHAR(255) NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL

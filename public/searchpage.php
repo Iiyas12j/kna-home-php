@@ -128,7 +128,7 @@ if ($dbReady) {
             $placeholders = implode(',', array_fill(0, count($clinicIds), '?'));
 
             $stmt = $pdo->prepare(
-                'SELECT cp.clinic_id, p.name
+                'SELECT cp.clinic_id, p.name, p.logo_image
                  FROM clinic_products cp
                  INNER JOIN products p ON p.id = cp.product_id
                  WHERE cp.clinic_id IN (' . $placeholders . ')
@@ -142,7 +142,10 @@ if ($dbReady) {
                 if (!isset($clinicProducts[$clinicId])) {
                     $clinicProducts[$clinicId] = [];
                 }
-                $clinicProducts[$clinicId][] = $row['name'];
+                $clinicProducts[$clinicId][] = [
+                    'name' => (string) ($row['name'] ?? ''),
+                    'logo' => clinic_media_url($row['logo_image'] ?? '', 'products'),
+                ];
             }
         }
     } catch (Exception $e) {
@@ -303,7 +306,7 @@ $siteHeaderActive = 'clinic';
                         <?php foreach ($clinics as $clinic): ?>
                             <?php
                             $clinicId = (int) ($clinic['id'] ?? 0);
-                            $productNames = $clinicProducts[$clinicId] ?? [];
+                            $clinicProductList = $clinicProducts[$clinicId] ?? [];
                             $heroImage = clinic_media_url($clinic['hero_image'] ?? '', 'clinics');
                             $logoImage = clinic_media_url($clinic['logo_image'] ?? '', 'clinics');
                             ?>
@@ -332,10 +335,16 @@ $siteHeaderActive = 'clinic';
                                         </div>
                                     </div>
 
-                                    <?php if (!empty($productNames)): ?>
+                                    <?php if (!empty($clinicProductList)): ?>
                                         <div class="flex flex-wrap gap-2 mb-4">
-                                            <?php foreach ($productNames as $productName): ?>
-                                                <span class="rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-sm"><?php echo h($productName); ?></span>
+                                            <?php foreach ($clinicProductList as $clinicProduct): ?>
+                                                <?php if (!empty($clinicProduct['logo'])): ?>
+                                                    <span class="inline-flex items-center justify-center h-12 w-36 rounded-xl bg-white border border-slate-200 shadow-sm px-2" title="<?php echo h($clinicProduct['name']); ?>">
+                                                        <img src="<?php echo h($clinicProduct['logo']); ?>" alt="<?php echo h($clinicProduct['name']); ?>" class="max-h-9 max-w-full object-contain">
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="inline-flex items-center justify-center h-12 w-36 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 text-sm font-medium truncate"><?php echo h($clinicProduct['name']); ?></span>
+                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>

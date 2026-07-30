@@ -41,6 +41,7 @@ if ($db_ready && isset($_GET['id'])) {
 }
 
 if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_valid_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $name_th = trim($_POST['name_th'] ?? '');
     $name_en = trim($_POST['name_en'] ?? '');
@@ -75,10 +76,7 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($newPhoto && $current_photo && $current_photo !== $newPhoto) {
-                $old = $uploadDir . '/' . $current_photo;
-                if (is_file($old)) {
-                    unlink($old);
-                }
+                delete_uploaded_file($current_photo, $uploadDir, 'doctors');
             }
 
             header('Location: /admin/doctors.php');
@@ -116,6 +114,7 @@ require_once __DIR__ . '/partials/header.php';
 
 <div class="card" style="max-width:950px;">
     <form method="post" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
         <input type="hidden" name="id" value="<?php echo (int) $item['id']; ?>">
         <input type="hidden" name="current_photo" value="<?php echo h($item['photo']); ?>">
 
@@ -143,7 +142,7 @@ require_once __DIR__ . '/partials/header.php';
 
         <div class="field">
             <label>รูปโปรไฟล์</label>
-            <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
+            <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp,.svg">
             <?php if (!empty($item['photo'])): ?>
                 <div class="muted" style="font-size:12px;">ไฟล์ปัจจุบัน: <?php echo h($item['photo']); ?></div>
             <?php endif; ?>

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS products (
 ALTER TABLE products ADD COLUMN IF NOT EXISTS name VARCHAR(190) NULL;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS short_description TEXT NULL;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS hero_image VARCHAR(255) NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS logo_image VARCHAR(255) NULL;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
@@ -142,3 +143,34 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   status VARCHAR(40) NOT NULL DEFAULT 'new',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2026-07-15: password reset tokens (forgot-password.php / reset-password.php)
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token_hash VARCHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_token_hash (token_hash),
+  INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2026-07-15: per-product image gallery (admin/products.php + single-product.php)
+CREATE TABLE IF NOT EXISTS product_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  image VARCHAR(255) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_product_id (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2026-07-16: long Google Maps / social URLs from CSV import exceed VARCHAR(255)
+ALTER TABLE clinics
+  MODIFY map_url TEXT NULL,
+  MODIFY website_url TEXT NULL,
+  MODIFY facebook_url TEXT NULL,
+  MODIFY instagram_url TEXT NULL,
+  MODIFY tiktok_url TEXT NULL,
+  MODIFY line_id VARCHAR(255) NULL;

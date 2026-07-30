@@ -44,9 +44,10 @@ $item = [
 $editing = false;
 $current_admin_id = (int) ($_SESSION['admin_id'] ?? 0);
 
-if ($db_ready && isset($_GET['quick'], $_GET['id'])) {
-    $id = (int) $_GET['id'];
-    $quick = trim((string) $_GET['quick']);
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') !== 'save') {
+    require_valid_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $action = trim((string) ($_POST['action'] ?? ''));
 
     $stmt = $pdo->prepare('SELECT id, name, email, role, is_active FROM admin_users WHERE id = ?');
     $stmt->execute([$id]);
@@ -56,13 +57,13 @@ if ($db_ready && isset($_GET['quick'], $_GET['id'])) {
         $targetRole = normalize_member_role($target['role'] ?? 'member');
         $activeAdmins = active_admin_count($pdo);
 
-        if ($quick === 'approve_doctor' && $targetRole === 'member') {
+        if ($action === 'approve_doctor' && $targetRole === 'member') {
             $pdo->prepare("UPDATE admin_users SET role = 'doctor', is_active = 1 WHERE id = ?")->execute([$id]);
             header('Location: /admin/users.php?notice=doctor-approved');
             exit;
         }
 
-        if ($quick === 'set_member' && $targetRole === 'doctor') {
+        if ($action === 'set_member' && $targetRole === 'doctor') {
             if ($id === $current_admin_id && $targetRole === 'admin' && $activeAdmins <= 1) {
                 $errors[] = 'ไม่สามารถลดสิทธิ์ admin คนสุดท้ายได้';
             } else {
@@ -72,7 +73,7 @@ if ($db_ready && isset($_GET['quick'], $_GET['id'])) {
             }
         }
 
-        if ($quick === 'toggle_active') {
+        if ($action === 'toggle_active') {
             $nextActive = (int) ($target['is_active'] ?? 0) === 1 ? 0 : 1;
 
             if ($id === $current_admin_id && $targetRole === 'admin' && $nextActive === 0 && $activeAdmins <= 1) {
@@ -83,32 +84,22 @@ if ($db_ready && isset($_GET['quick'], $_GET['id'])) {
                 exit;
             }
         }
-    }
-}
-
-if ($db_ready && isset($_GET['delete'])) {
-    $id = (int) $_GET['delete'];
-    $stmt = $pdo->prepare('SELECT id, role, is_active FROM admin_users WHERE id = ?');
-    $stmt->execute([$id]);
-    $target = $stmt->fetch();
-
-    if ($target) {
-        $targetRole = normalize_member_role($target['role'] ?? 'member');
-        $activeAdmins = active_admin_count($pdo);
-
-        if ($id === $current_admin_id) {
-            $errors[] = 'ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้';
-        } elseif ($targetRole === 'admin' && (int) ($target['is_active'] ?? 0) === 1 && $activeAdmins <= 1) {
-            $errors[] = 'ไม่สามารถลบ admin คนสุดท้ายได้';
-        } else {
-            $pdo->prepare('DELETE FROM admin_users WHERE id = ?')->execute([$id]);
-            header('Location: /admin/users.php?notice=deleted');
-            exit;
+        if ($action === 'delete') {
+            if ($id === $current_admin_id) {
+                $errors[] = 'ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้';
+            } elseif ($targetRole === 'admin' && (int) ($target['is_active'] ?? 0) === 1 && $activeAdmins <= 1) {
+                $errors[] = 'ไม่สามารถลบ admin คนสุดท้ายได้';
+            } else {
+                $pdo->prepare('DELETE FROM admin_users WHERE id = ?')->execute([$id]);
+                header('Location: /admin/users.php?notice=deleted');
+                exit;
+            }
         }
     }
 }
 
-if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') === 'save') {
+    require_valid_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $email = trim((string) ($_POST['email'] ?? ''));
     $name = trim((string) ($_POST['name'] ?? ''));
@@ -206,6 +197,10 @@ $noticeMap = [
 $notice = $noticeMap[$_GET['notice'] ?? ''] ?? '';
 
 $items = [];
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 20;
+$totalUsers = 0;
+$totalPages = 1;
 $summary = [
     'all' => 0,
     'member' => 0,
@@ -215,18 +210,30 @@ $summary = [
 ];
 
 if ($db_ready) {
-    $items = $pdo->query('SELECT * FROM admin_users ORDER BY id DESC')->fetchAll();
-
-    foreach ($items as $row) {
-        $summary['all']++;
-        $role = normalize_member_role($row['role'] ?? 'member');
-        if (isset($summary[$role])) {
-            $summary[$role]++;
-        }
-        if ((int) ($row['is_active'] ?? 0) !== 1) {
-            $summary['inactive']++;
-        }
-    }
+    $counts = $pdo->query(
+        "SELECT COUNT(*) AS total,
+                SUM(role = 'member') AS members,
+                SUM(role = 'doctor') AS doctors,
+                SUM(role = 'admin') AS admins,
+                SUM(is_active <> 1) AS inactive
+         FROM admin_users"
+    )->fetch();
+    $summary = [
+        'all' => (int) ($counts['total'] ?? 0),
+        'member' => (int) ($counts['members'] ?? 0),
+        'doctor' => (int) ($counts['doctors'] ?? 0),
+        'admin' => (int) ($counts['admins'] ?? 0),
+        'inactive' => (int) ($counts['inactive'] ?? 0),
+    ];
+    $totalUsers = $summary['all'];
+    $totalPages = max(1, (int) ceil($totalUsers / $perPage));
+    $page = min($page, $totalPages);
+    $offset = ($page - 1) * $perPage;
+    $stmt = $pdo->prepare('SELECT * FROM admin_users ORDER BY id DESC LIMIT :limit OFFSET :offset');
+    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $items = $stmt->fetchAll();
 }
 
 require_once __DIR__ . '/partials/header.php';
@@ -276,6 +283,8 @@ require_once __DIR__ . '/partials/header.php';
     <?php endforeach; ?>
 
     <form method="post">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="save">
         <input type="hidden" name="id" value="<?php echo (int) $item['id']; ?>">
 
         <div class="row">
@@ -366,18 +375,36 @@ require_once __DIR__ . '/partials/header.php';
                 </td>
                 <td class="actions" style="gap:8px; flex-wrap:wrap;">
                     <?php if ($rowRole === 'member'): ?>
-                        <a class="btn btn--primary" href="/admin/users.php?quick=approve_doctor&id=<?php echo (int) $row['id']; ?>">อนุมัติแพทย์</a>
+                        <form method="post">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="action" value="approve_doctor">
+                            <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                            <button class="btn btn--primary" type="submit">อนุมัติแพทย์</button>
+                        </form>
                     <?php endif; ?>
                     <?php if ($rowRole === 'doctor'): ?>
-                        <a class="btn" href="/admin/users.php?quick=set_member&id=<?php echo (int) $row['id']; ?>">ตั้งเป็นสมาชิก</a>
+                        <form method="post">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="action" value="set_member">
+                            <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                            <button class="btn" type="submit">ตั้งเป็นสมาชิก</button>
+                        </form>
                     <?php endif; ?>
-                    <a class="btn <?php echo $isActive ? 'btn--muted' : 'btn--primary'; ?>" href="/admin/users.php?quick=toggle_active&id=<?php echo (int) $row['id']; ?>">
-                        <?php echo $isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'; ?>
-                    </a>
+                    <form method="post">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="toggle_active">
+                        <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                        <button class="btn <?php echo $isActive ? 'btn--muted' : 'btn--primary'; ?>" type="submit"><?php echo $isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'; ?></button>
+                    </form>
                 </td>
                 <td class="actions">
                     <a class="btn" href="/admin/users.php?edit=<?php echo (int) $row['id']; ?>">Edit</a>
-                    <a class="btn btn--danger" href="/admin/users.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('Delete this user?');">Delete</a>
+                    <form method="post" onsubmit="return confirm('Delete this user?');">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                        <button class="btn btn--danger" type="submit">Delete</button>
+                    </form>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -389,5 +416,13 @@ require_once __DIR__ . '/partials/header.php';
         </tbody>
     </table>
 </div>
+
+<?php if ($totalPages > 1): ?>
+    <nav class="actions" style="justify-content:center; margin-top:16px;">
+        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <a class="btn <?php echo $p === $page ? 'btn--primary' : ''; ?>" href="/admin/users.php?page=<?php echo $p; ?>"><?php echo $p; ?></a>
+        <?php endfor; ?>
+    </nav>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/partials/footer.php'; ?>

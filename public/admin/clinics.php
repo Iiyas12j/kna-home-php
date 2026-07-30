@@ -41,9 +41,10 @@ if ($db_ready) {
     }
 }
 
-if ($db_ready && isset($_GET['delete'])) {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') === 'delete') {
     try {
-        $id = (int) $_GET['delete'];
+        require_valid_csrf();
+        $id = (int) ($_POST['id'] ?? 0);
         $stmt = $pdo->prepare('SELECT hero_image, logo_image FROM clinics WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
@@ -52,10 +53,7 @@ if ($db_ready && isset($_GET['delete'])) {
             $pdo->prepare('DELETE FROM clinics WHERE id = ?')->execute([$id]);
             foreach (['hero_image', 'logo_image'] as $col) {
                 if (!empty($row[$col])) {
-                    $file = $uploadDir . '/' . $row[$col];
-                    if (is_file($file)) {
-                        unlink($file);
-                    }
+                    delete_uploaded_file($row[$col], $uploadDir, 'clinics');
                 }
             }
         }
@@ -66,7 +64,216 @@ if ($db_ready && isset($_GET['delete'])) {
     }
 }
 
-if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+function clinic_import_normalize_phone(string $value): string
+{
+    $value = trim($value);
+    if ($value === '' || $value === '0') {
+        return '';
+    }
+    // Excel exports sometimes turn phone numbers into floats (924325498.0).
+    if (preg_match('/^\d+(\.0)?$/', $value)) {
+        $digits = preg_replace('/\.0$/', '', $value);
+        if ($digits[0] !== '0') {
+            $digits = '0' . $digits;
+        }
+        if (strlen($digits) === 10) {
+            return substr($digits, 0, 3) . '-' . substr($digits, 3, 3) . '-' . substr($digits, 6);
+        }
+        if (strlen($digits) === 9) {
+            return substr($digits, 0, 2) . '-' . substr($digits, 2, 3) . '-' . substr($digits, 5);
+        }
+        return $digits;
+    }
+    return $value;
+}
+
+function clinic_import_normalize_time(string $value): ?string
+{
+    $value = trim($value);
+    if ($value === '' || $value === '-' || preg_match('/^0{1,2}:00(:00)?$/', $value)) {
+        return null;
+    }
+    return preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $value) ? $value : null;
+}
+
+$importReport = null;
+if (isset($_GET['imported'])) {
+    $importReport = [
+        'updated' => (int) ($_GET['upd'] ?? 0),
+        'inserted' => (int) ($_GET['ins'] ?? 0),
+        'skipped' => (int) ($_GET['skip'] ?? 0),
+        'links' => (int) ($_GET['links'] ?? 0),
+    ];
+}
+
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_csv') {
+    try {
+        require_valid_csrf();
+
+        $file = $_FILES['csv_file'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('กรุณาเลือกไฟล์ CSV');
+        }
+        if (!preg_match('/\.csv$/i', (string) $file['name'])) {
+            throw new RuntimeException('รองรับเฉพาะไฟล์ .csv');
+        }
+
+        $handle = fopen($file['tmp_name'], 'r');
+        if (!$handle) {
+            throw new RuntimeException('เปิดไฟล์ไม่สำเร็จ');
+        }
+
+        $header = fgetcsv($handle, null, ',', '"', '\\');
+        if (!$header) {
+            throw new RuntimeException('ไฟล์ว่างเปล่า');
+        }
+        // Strip UTF-8 BOM and normalize header names.
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]);
+        $header = array_map(static fn ($col) => strtolower(trim((string) $col)), $header);
+
+        // CSV column -> DB column
+        $columnMap = [
+            'name' => 'name', 'logo_url' => 'logo_image', 'address' => 'address',
+            'province' => 'province', 'district' => 'district', 'phone' => 'phone',
+            'map_url' => 'map_url', 'website' => 'website_url', 'facebook' => 'facebook_url',
+            'instagram' => 'instagram_url', 'tiktok' => 'tiktok_url', 'line' => 'line_id',
+            'opening_time' => 'open_time', 'closing_time' => 'close_time',
+        ];
+        if (!in_array('name', $header, true)) {
+            throw new RuntimeException('ไม่พบคอลัมน์ name ในไฟล์ — ตรวจสอบหัวตาราง CSV');
+        }
+
+        // product keyword map: "HYABELL ULTRA" etc. all resolve to the Hyabell product row
+        $productKeywords = [];
+        foreach ($products as $product) {
+            $keyword = strtolower(strtok(trim((string) $product['name']), ' '));
+            if ($keyword !== '') {
+                $productKeywords[$keyword] = (int) $product['id'];
+            }
+        }
+
+        $updated = $inserted = $skipped = $linkUpdates = 0;
+        $pdo->beginTransaction();
+
+        $existsStmt = $pdo->prepare('SELECT id FROM clinics WHERE id = ?');
+        $byNameStmt = $pdo->prepare('SELECT id FROM clinics WHERE name = ? LIMIT 1');
+        $delLinks = $pdo->prepare('DELETE FROM clinic_products WHERE clinic_id = ?');
+        $insLink = $pdo->prepare('INSERT INTO clinic_products (clinic_id, product_id) VALUES (?, ?)');
+
+        while (($row = fgetcsv($handle, null, ',', '"', '\\')) !== false) {
+            if (count($row) === 1 && trim((string) $row[0]) === '') {
+                continue;
+            }
+            $data = [];
+            foreach ($header as $i => $col) {
+                $data[$col] = trim((string) ($row[$i] ?? ''));
+            }
+            if (($data['name'] ?? '') === '') {
+                $skipped++;
+                continue;
+            }
+
+            // Build the column => value list from non-empty CSV cells only,
+            // so blank cells never wipe existing data.
+            $fields = [];
+            foreach ($columnMap as $csvCol => $dbCol) {
+                if (!array_key_exists($csvCol, $data)) {
+                    continue;
+                }
+                $value = $data[$csvCol];
+                if ($value === '' || $value === '-') {
+                    continue;
+                }
+                if ($dbCol === 'phone') {
+                    $value = clinic_import_normalize_phone($value);
+                    if ($value === '') {
+                        continue;
+                    }
+                } elseif ($dbCol === 'open_time' || $dbCol === 'close_time') {
+                    $value = clinic_import_normalize_time($value);
+                    if ($value === null) {
+                        continue;
+                    }
+                }
+                $fields[$dbCol] = $value;
+            }
+            if (array_key_exists('status', $data) && $data['status'] !== '') {
+                $fields['is_active'] = strtolower($data['status']) === 'open' ? 1 : 0;
+            }
+
+            // Resolve target clinic: by id first, then by exact name.
+            $csvId = (int) ($data['id'] ?? 0);
+            $targetId = 0;
+            if ($csvId > 0) {
+                $existsStmt->execute([$csvId]);
+                $targetId = $existsStmt->fetch() ? $csvId : 0;
+            }
+            if ($targetId === 0) {
+                $byNameStmt->execute([$data['name']]);
+                $found = $byNameStmt->fetch();
+                if ($found) {
+                    $targetId = (int) $found['id'];
+                }
+            }
+
+            if ($targetId > 0) {
+                if ($fields) {
+                    $set = implode(', ', array_map(static fn ($col) => "$col = ?", array_keys($fields)));
+                    $stmt = $pdo->prepare("UPDATE clinics SET $set, updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([...array_values($fields), $targetId]);
+                }
+                $updated++;
+            } else {
+                if ($csvId > 0) {
+                    $fields['id'] = $csvId;
+                }
+                $cols = implode(', ', array_keys($fields));
+                $marks = implode(', ', array_fill(0, count($fields), '?'));
+                $stmt = $pdo->prepare("INSERT INTO clinics ($cols, created_at) VALUES ($marks, NOW())");
+                $stmt->execute(array_values($fields));
+                $targetId = $csvId > 0 ? $csvId : (int) $pdo->lastInsertId();
+                $inserted++;
+            }
+
+            // Product links: only touch them when the products cell is present & non-empty.
+            if (array_key_exists('products', $data) && $data['products'] !== '') {
+                $productIds = [];
+                if (strtoupper($data['products']) !== 'FALSE') {
+                    foreach (preg_split('/[,\/]/', $data['products']) as $entry) {
+                        $entry = strtolower(trim($entry));
+                        if ($entry === '') {
+                            continue;
+                        }
+                        foreach ($productKeywords as $keyword => $productId) {
+                            if (str_contains($entry, $keyword)) {
+                                $productIds[$productId] = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                $delLinks->execute([$targetId]);
+                foreach (array_keys($productIds) as $productId) {
+                    $insLink->execute([$targetId, $productId]);
+                }
+                $linkUpdates++;
+            }
+        }
+        fclose($handle);
+        $pdo->commit();
+
+        header('Location: /admin/clinics.php?imported=1&upd=' . $updated . '&ins=' . $inserted . '&skip=' . $skipped . '&links=' . $linkUpdates);
+        exit;
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $errors[] = 'นำเข้า CSV ไม่สำเร็จ (ไม่มีข้อมูลถูกแก้ไข): ' . $e->getMessage();
+    }
+}
+
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($_POST['action'] ?? 'save', ['delete', 'import_csv'], true)) {
+    require_valid_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
     $address = trim($_POST['address'] ?? '');
@@ -128,16 +335,10 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($newHero && $current_hero && $newHero !== $current_hero) {
-                $old = $uploadDir . '/' . $current_hero;
-                if (is_file($old)) {
-                    unlink($old);
-                }
+                delete_uploaded_file($current_hero, $uploadDir, 'clinics');
             }
             if ($newLogo && $current_logo && $newLogo !== $current_logo) {
-                $old = $uploadDir . '/' . $current_logo;
-                if (is_file($old)) {
-                    unlink($old);
-                }
+                delete_uploaded_file($current_logo, $uploadDir, 'clinics');
             }
 
             header('Location: /admin/clinics.php');
@@ -199,6 +400,9 @@ $filter_province = trim($_GET['province'] ?? '');
 $filter_product = (int) ($_GET['product_id'] ?? 0);
 $rows = [];
 $total = 0;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 20;
+$totalPages = 1;
 
 if ($db_ready) {
     try {
@@ -220,12 +424,21 @@ if ($db_ready) {
             $sql .= ' AND c.province = ?';
             $params[] = $filter_province;
         }
-        $sql .= ' ORDER BY c.id DESC';
+        $countSql = 'SELECT COUNT(DISTINCT c.id) FROM clinics c';
+        if ($filter_product > 0) {
+            $countSql .= ' INNER JOIN clinic_products cp ON cp.clinic_id = c.id AND cp.product_id = ?';
+        }
+        $countSql .= substr($sql, strpos($sql, ' WHERE '));
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $totalPages);
+        $sql .= ' ORDER BY c.id DESC LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage);
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
-        $total = count($rows);
     } catch (Exception $e) {
         $db_error = $e->getMessage();
     }
@@ -257,6 +470,16 @@ require_once __DIR__ . '/partials/header.php';
     <div class="error"><?php echo h($e); ?></div>
 <?php endforeach; ?>
 
+<?php if ($importReport !== null): ?>
+    <div class="notice" style="background:#ecfdf5; border-color:#a7f3d0; color:#065f46;">
+        <i class="fa-solid fa-circle-check"></i>
+        นำเข้า CSV สำเร็จ — อัปเดต <?php echo $importReport['updated']; ?> คลินิก,
+        เพิ่มใหม่ <?php echo $importReport['inserted']; ?> คลินิก,
+        อัปเดตสินค้าประจำคลินิก <?php echo $importReport['links']; ?> รายการ<?php if ($importReport['skipped'] > 0): ?>,
+        ข้ามแถวไม่มีชื่อ <?php echo $importReport['skipped']; ?> แถว<?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <div class="toolbar">
     <form method="get" class="row" style="flex:1; min-width:780px;">
         <div class="field" style="margin:0;">
@@ -285,6 +508,7 @@ require_once __DIR__ . '/partials/header.php';
             <button class="btn btn--primary" type="submit"><i class="fa-solid fa-filter"></i>กรองข้อมูล</button>
         </div>
     </form>
+    <button class="btn btn--muted" data-modal-open="importModal"><i class="fa-solid fa-file-csv"></i>นำเข้า CSV</button>
     <button class="btn btn--primary" data-modal-open="clinicModal"><i class="fa-solid fa-plus"></i>เพิ่มคลินิกใหม่</button>
 </div>
 
@@ -311,7 +535,12 @@ require_once __DIR__ . '/partials/header.php';
                     <td>
                         <div class="actions">
                             <a class="iconBtn" href="/admin/clinics.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i></a>
-                            <a class="iconBtn iconBtn--danger" href="/admin/clinics.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('ลบคลินิกนี้?');"><i class="fa-solid fa-trash"></i></a>
+                            <form method="post" onsubmit="return confirm('ลบคลินิกนี้?');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                                <button class="iconBtn iconBtn--danger" type="submit"><i class="fa-solid fa-trash"></i></button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -323,6 +552,14 @@ require_once __DIR__ . '/partials/header.php';
     </table>
 </div>
 
+<?php if ($totalPages > 1): ?>
+    <nav class="actions" style="justify-content:center; margin-top:16px;">
+        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <a class="btn <?php echo $p === $page ? 'btn--primary' : ''; ?>" href="/admin/clinics.php?q=<?php echo urlencode($filter_q); ?>&province=<?php echo urlencode($filter_province); ?>&product_id=<?php echo $filter_product; ?>&page=<?php echo $p; ?>"><?php echo $p; ?></a>
+        <?php endfor; ?>
+    </nav>
+<?php endif; ?>
+
 <div class="modal <?php echo $editing ? 'is-open' : ''; ?>" id="clinicModal">
     <div class="modal__dialog">
         <div class="modal__head">
@@ -331,6 +568,8 @@ require_once __DIR__ . '/partials/header.php';
         </div>
 
         <form method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?php echo (int) $item['id']; ?>">
             <input type="hidden" name="current_hero" value="<?php echo h($item['hero_image']); ?>">
             <input type="hidden" name="current_logo" value="<?php echo h($item['logo_image']); ?>">
@@ -343,11 +582,11 @@ require_once __DIR__ . '/partials/header.php';
             <div class="row">
                 <div class="field">
                     <label>Logo คลินิก</label>
-                    <input type="file" name="logo_image" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="file" name="logo_image" accept=".jpg,.jpeg,.png,.webp,.svg">
                 </div>
                 <div class="field">
                     <label>ภาพหลักคลินิก</label>
-                    <input type="file" name="hero_image" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="file" name="hero_image" accept=".jpg,.jpeg,.png,.webp,.svg">
                 </div>
             </div>
 
@@ -427,6 +666,40 @@ require_once __DIR__ . '/partials/header.php';
             <div class="actions" style="margin-top:12px;">
                 <button class="btn btn--primary" type="submit"><i class="fa-solid fa-floppy-disk"></i>บันทึก</button>
                 <button class="btn btn--muted" type="button" data-modal-close="clinicModal">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="importModal">
+    <div class="modal__dialog" style="max-width:640px;">
+        <div class="modal__head">
+            <h2 class="modal__title">นำเข้า / อัปเดตคลินิกจากไฟล์ CSV</h2>
+            <button class="closeBtn" data-modal-close="importModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="import_csv">
+
+            <div class="field">
+                <label>ไฟล์ CSV</label>
+                <input type="file" name="csv_file" accept=".csv" required>
+            </div>
+
+            <div style="font-size:13px; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:12px; line-height:1.8;">
+                <div style="font-weight:700; margin-bottom:4px;"><i class="fa-solid fa-circle-info"></i> กติกาการนำเข้า</div>
+                • หัวตารางที่รองรับ: <code>id, name, logo_url, address, province, district, phone, products, map_url, website, facebook, instagram, tiktok, line, opening_time, closing_time, status</code><br>
+                • มี <b>id</b> ตรงกับในระบบ → อัปเดตข้อมูลคลินิกนั้น / ไม่มี id → จับคู่จากชื่อ / ไม่เจอเลย → เพิ่มเป็นคลินิกใหม่<br>
+                • <b>ช่องว่างจะไม่ทับข้อมูลเดิม</b> — กรอกเฉพาะช่องที่ต้องการอัปเดตได้<br>
+                • เบอร์โทรที่เพี้ยนจาก Excel (เช่น 924325498.0) จะถูกแก้ให้อัตโนมัติ<br>
+                • ช่อง products ใส่ชื่อสินค้าคั่นด้วยจุลภาค เช่น <code>Hyabell,NeoFilera</code> (ใส่ <code>FALSE</code> = ล้างสินค้าออก)<br>
+                • ถ้าเกิดข้อผิดพลาดระหว่างนำเข้า ระบบจะยกเลิกทั้งหมด ข้อมูลเดิมไม่เสียหาย
+            </div>
+
+            <div class="actions">
+                <button class="btn btn--primary" type="submit" onclick="this.disabled=true; this.textContent='กำลังนำเข้า...'; this.form.submit();"><i class="fa-solid fa-upload"></i>นำเข้าข้อมูล</button>
+                <button class="btn btn--muted" type="button" data-modal-close="importModal">ยกเลิก</button>
             </div>
         </form>
     </div>

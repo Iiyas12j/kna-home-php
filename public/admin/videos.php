@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../../app/auth.php';
 require_once __DIR__ . '/../../app/helpers.php';
 require_admin();
@@ -27,30 +27,16 @@ $uploadDir = __DIR__ . '/../uploads/videos';
 $platforms = ['tiktok', 'youtube', 'facebook', 'other'];
 $accessLevels = ['public', 'member', 'doctor'];
 
-if ($db_ready) {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') === 'delete') {
     try {
-        ensure_videos_access_level_column($pdo);
-        ensure_videos_detail_columns($pdo);
-    } catch (Exception $e) {
-        $db_error = $e->getMessage();
-        $db_ready = false;
-    }
-}
-
-if ($db_ready && isset($_GET['delete'])) {
-    try {
-        $id = (int) $_GET['delete'];
+        require_valid_csrf();
+        $id = (int) ($_POST['id'] ?? 0);
         $stmt = $pdo->prepare('SELECT thumbnail FROM videos WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         if ($row) {
             $pdo->prepare('DELETE FROM videos WHERE id = ?')->execute([$id]);
-            if (!empty($row['thumbnail'])) {
-                $file = $uploadDir . '/' . $row['thumbnail'];
-                if (is_file($file)) {
-                    unlink($file);
-                }
-            }
+            delete_uploaded_file($row['thumbnail'] ?? '', $uploadDir, 'videos');
         }
         header('Location: /admin/videos.php');
         exit;
@@ -59,7 +45,12 @@ if ($db_ready && isset($_GET['delete'])) {
     }
 }
 
-if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') !== 'delete') {
+    try {
+        require_valid_csrf();
+    } catch (Exception $e) {
+        $errors[] = $e->getMessage();
+    }
     $id = (int) ($_POST['id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -98,10 +89,7 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($newThumb && $current_thumb && $newThumb !== $current_thumb) {
-                $old = $uploadDir . '/' . $current_thumb;
-                if (is_file($old)) {
-                    unlink($old);
-                }
+                delete_uploaded_file($current_thumb, $uploadDir, 'videos');
             }
 
             header('Location: /admin/videos.php');
@@ -164,240 +152,361 @@ foreach ($rows as $row) {
 
 $currentMode = normalize_video_access_level($item['access_level'] ?? 'public') === 'public' ? 'public' : 'learning';
 
+function admin_video_embed_url(?string $url, string $platform): ?string
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return null;
+    }
+    if (preg_match('#tiktok\.com/.*/video/(\d+)#i', $url, $m)) {
+        return 'https://www.tiktok.com/player/v1/' . $m[1] . '?music_info=0&description=0&rel=0';
+    }
+    if (preg_match('#(?:youtube\.com/(?:watch\?v=|embed/|shorts/|live/)|youtu\.be/)([A-Za-z0-9_-]{6,20})#i', $url, $m)) {
+        return 'https://www.youtube-nocookie.com/embed/' . $m[1] . '?rel=0';
+    }
+    if (preg_match('#^https?://(www\.)?(facebook\.com|fb\.watch)/#i', $url)) {
+        return 'https://www.facebook.com/plugins/video.php?href=' . rawurlencode($url) . '&show_text=false';
+    }
+    return null;
+}
+
 require_once __DIR__ . '/partials/header.php';
 ?>
 
 <style>
-    .video-admin-kpis {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        margin-bottom: 20px;
-    }
-    .video-admin-kpi__label {
-        color: #6b7280;
-        font-size: 13px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-    .video-admin-kpi__value {
-        margin-top: 8px;
-        font-size: 34px;
-        font-weight: 800;
-        color: #111827;
-    }
-    .video-admin-kpi__note {
-        margin-top: 6px;
-        color: #64748b;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-    .video-admin-toolbar {
-        align-items: stretch;
-        margin-bottom: 20px;
-    }
-    .video-admin-toolbar__copy {
-        max-width: 680px;
-    }
-    .video-admin-toolbar__copy p {
-        margin: 8px 0 0;
-        color: #64748b;
-        line-height: 1.6;
-    }
-    .video-admin-toolbar__actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-    .video-admin-section {
-        margin-top: 22px;
-    }
-    .video-admin-section__head {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-end;
-        margin-bottom: 14px;
-    }
-    .video-admin-section__title {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 800;
-        color: #111827;
-    }
-    .video-admin-section__desc {
-        margin: 6px 0 0;
-        color: #64748b;
-        line-height: 1.6;
-        max-width: 760px;
-    }
-    .video-admin-count {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #3730a3;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-    .video-admin-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 16px;
-    }
-    .video-admin-card {
-        padding: 14px;
-    }
-    .video-admin-card__thumb {
-        height: 260px;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-        overflow: hidden;
-        display: grid;
-        place-items: center;
-    }
-    .video-admin-card__thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .video-admin-card__thumb i {
-        font-size: 52px;
-        color: #94a3b8;
-    }
-    .video-admin-card__meta {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 12px;
-    }
-    .video-admin-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 800;
-        background: #eff6ff;
-        color: #1d4ed8;
-    }
-    .video-admin-pill--learning {
-        background: #eef2ff;
-        color: #4338ca;
-    }
-    .video-admin-pill--doctor {
-        background: #fee2e2;
-        color: #be123c;
-    }
-    .video-admin-pill--member {
-        background: #ede9fe;
-        color: #6d28d9;
-    }
-    .video-admin-card__title {
-        margin-top: 12px;
-        font-size: 28px;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.2;
-    }
-    .video-admin-card__url {
-        display: block;
-        margin-top: 6px;
-        font-size: 13px;
-        color: #2563eb;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .video-admin-card__summary {
-        margin-top: 10px;
-        color: #475569;
-        line-height: 1.6;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        min-height: 4.8em;
-    }
-    .video-admin-card__details {
-        margin-top: 12px;
-        padding: 12px;
-        border-radius: 12px;
-        background: #f8fafc;
-        color: #334155;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-    .video-admin-card__details strong {
-        color: #1e3a8a;
-    }
-    .video-admin-empty {
-        padding: 28px;
-        text-align: center;
-        color: #64748b;
-        line-height: 1.7;
-    }
+.v-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.v-header-content h1 {
+    font-family: 'Prompt', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+.v-header-content p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+.v-header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.v-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+}
+.v-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    height: 110px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: box-shadow 0.2s ease;
+}
+.v-stat-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+.v-stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+}
+.v-stat-content {
+    flex: 1;
+}
+.v-stat-label {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.v-stat-value {
+    font-size: 40px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.v-section {
+    margin-bottom: 48px;
+}
+.v-section-header {
+    margin-bottom: 24px;
+}
+.v-section-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.3px;
+}
+.v-section-header p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.v-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(1, 1fr);
+}
+@media (min-width: 640px) { .v-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .v-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1280px) { .v-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.v-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+.v-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+.v-card-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #f8fafc;
+    overflow: hidden;
+}
+.v-card-thumb--tall {
+    aspect-ratio: 9/16;
+}
+.v-card-thumb iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+.v-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.v-card-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    font-size: 48px;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+.v-card-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    font-size: 20px;
+    padding-left: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+.v-card:hover .v-card-play {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+}
+.v-card-body {
+    padding: 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.v-card-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.v-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.v-badge-blue { background: #eff6ff; color: #2563eb; }
+.v-badge-green { background: #f0fdf4; color: #16a34a; }
+.v-badge-red { background: #fef2f2; color: #dc2626; }
+.v-badge-purple { background: #faf5ff; color: #9333ea; }
+.v-badge-gray { background: #f1f5f9; color: #475569; }
+.v-badge-indigo { background: #eef2ff; color: #4f46e5; }
+
+.v-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.v-card-desc {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 16px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+}
+.v-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+.v-card-actions {
+    display: flex;
+    gap: 8px;
+}
+.v-card-btn {
+    flex: 1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+.v-card-btn-edit {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+}
+.v-card-btn-edit:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+.v-card-btn-del {
+    background: #fff1f2;
+    color: #e11d48;
+}
+.v-card-btn-del:hover { background: #ffe4e6; color: #be123c; }
+
+@media (max-width: 768px) {
+    .v-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .v-stats { grid-template-columns: 1fr; }
+}
+
+/* Modal specific style updates */
+.video-modal-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.video-modal-switch__button {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+    color: #1f2937;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.video-modal-switch__button:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+}
+.video-modal-switch__button strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: #111827;
+}
+.video-modal-switch__button span {
+    display: block;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+}
+.video-modal-switch__button.is-active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 1px #2563eb;
+}
+.video-modal-note {
+    display: none;
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    line-height: 1.6;
+    font-size: 14px;
+}
+.video-modal-note strong {
+    color: #1e3a8a;
+}
+@media (max-width: 720px) {
     .video-modal-switch {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-bottom: 16px;
+        grid-template-columns: 1fr;
     }
-    .video-modal-switch__button {
-        border: 1px solid #d6dbe3;
-        border-radius: 14px;
-        padding: 14px 16px;
-        background: #fff;
-        color: #1f2937;
-        text-align: left;
-        cursor: pointer;
-    }
-    .video-modal-switch__button strong {
-        display: block;
-        font-size: 15px;
-        margin-bottom: 4px;
-    }
-    .video-modal-switch__button span {
-        display: block;
-        font-size: 13px;
-        color: #64748b;
-        line-height: 1.5;
-    }
-    .video-modal-switch__button.is-active {
-        border-color: #2f65dc;
-        background: #eef4ff;
-        box-shadow: inset 0 0 0 1px rgba(47, 101, 220, 0.18);
-    }
-    .video-modal-note {
-        display: none;
-        margin: 0 0 14px;
-        padding: 12px 14px;
-        border-radius: 12px;
-        background: #eff6ff;
-        color: #1d4ed8;
-        line-height: 1.6;
-        font-size: 14px;
-    }
-    .video-modal-note strong {
-        color: #1e3a8a;
-    }
-    @media (max-width: 720px) {
-        .video-admin-section__head {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-        .video-modal-switch {
-            grid-template-columns: 1fr;
-        }
-    }
+}
 </style>
 
-<h1 class="pageTitle">จัดการวิดีโอ</h1>
+<!-- Header Section -->
+<div class="v-header">
+    <div class="v-header-content">
+        <h1>จัดการวิดีโอ</h1>
+        <p>จัดการคลิปสาธารณะและคลิปความรู้สำหรับเว็บไซต์ KNA</p>
+    </div>
+    <div class="v-header-actions">
+        <button class="btn" data-modal-open="videoModal" data-video-mode="public"><i class="fa-solid fa-earth-asia"></i> เพิ่มวิดีโอสาธารณะ</button>
+        <button class="btn btn--primary" data-modal-open="videoModal" data-video-mode="learning"><i class="fa-solid fa-book-medical"></i> เพิ่มวิดีโอความรู้</button>
+    </div>
+</div>
 
 <?php if (!$db_ready || $db_error !== ''): ?>
     <div class="notice">Database not ready: <?php echo h($db_error ?: 'connection failed'); ?></div>
@@ -406,128 +515,173 @@ require_once __DIR__ . '/partials/header.php';
     <div class="error"><?php echo h($e); ?></div>
 <?php endforeach; ?>
 
-<div class="video-admin-kpis">
-    <div class="card">
-        <div class="video-admin-kpi__label">วิดีโอทั้งหมด</div>
-        <div class="video-admin-kpi__value"><?php echo count($rows); ?></div>
-        <div class="video-admin-kpi__note">รวมคลิปสาธารณะและคลิปความรู้ที่ใช้ในหน้าเว็บและหน้ารายละเอียด</div>
-    </div>
-    <div class="card">
-        <div class="video-admin-kpi__label">วิดีโอสาธารณะ</div>
-        <div class="video-admin-kpi__value"><?php echo count($publicRows); ?></div>
-        <div class="video-admin-kpi__note">เหมาะกับ TikTok หรือคลิปที่เปิดให้ผู้ใช้ทั่วไปเข้าชมได้ทันที</div>
-    </div>
-    <div class="card">
-        <div class="video-admin-kpi__label">วิดีโอความรู้</div>
-        <div class="video-admin-kpi__value"><?php echo count($learningRows); ?></div>
-        <div class="video-admin-kpi__note">ใช้กับคลิปสมาชิกหรือแพทย์ ที่ต้องมี summary และเนื้อหาเต็มในหน้า detail</div>
-    </div>
-</div>
-
-<div class="toolbar video-admin-toolbar">
-    <div class="video-admin-toolbar__copy">
-        <strong>จัดการแยกตามประเภทการใช้งาน</strong>
-        <p>วิดีโอสาธารณะเน้นแสดงบนหน้าเว็บแบบดูได้ทันที ส่วนวิดีโอความรู้จะมีข้อมูลเชิงลึกมากกว่าและใช้กับหน้า detail สำหรับสมาชิกหรือแพทย์</p>
-    </div>
-    <div class="video-admin-toolbar__actions">
-        <button class="btn" data-modal-open="videoModal" data-video-mode="public"><i class="fa-solid fa-earth-asia"></i>เพิ่มวิดีโอสาธารณะ</button>
-        <button class="btn btn--primary" data-modal-open="videoModal" data-video-mode="learning"><i class="fa-solid fa-user-doctor"></i>เพิ่มวิดีโอความรู้</button>
-    </div>
-</div>
-
-<section class="video-admin-section">
-    <div class="video-admin-section__head">
-        <div>
-            <h2 class="video-admin-section__title">วิดีโอสาธารณะ</h2>
-            <p class="video-admin-section__desc">กลุ่มนี้เหมาะกับคลิปสั้นหรือคลิปโปรโมตที่ต้องการให้หน้าเว็บเล่นหรือแสดงตัวอย่างได้ทันที โดยไม่ต้องมีข้อมูลเชิงลึกมาก</p>
+<!-- Stats Section -->
+<div class="v-stats">
+    <div class="v-stat-card">
+        <div class="v-stat-icon" style="color: #2563eb; background: #eff6ff;"><i class="fa-solid fa-video"></i></div>
+        <div class="v-stat-content">
+            <div class="v-stat-label">วิดีโอทั้งหมด</div>
+            <div class="v-stat-value"><?php echo count($rows); ?></div>
         </div>
-        <div class="video-admin-count"><i class="fa-solid fa-clapperboard"></i><?php echo count($publicRows); ?> รายการ</div>
+    </div>
+    <div class="v-stat-card">
+        <div class="v-stat-icon" style="color: #16a34a; background: #f0fdf4;"><i class="fa-solid fa-earth-asia"></i></div>
+        <div class="v-stat-content">
+            <div class="v-stat-label">วิดีโอสาธารณะ</div>
+            <div class="v-stat-value"><?php echo count($publicRows); ?></div>
+        </div>
+    </div>
+    <div class="v-stat-card">
+        <div class="v-stat-icon" style="color: #9333ea; background: #faf5ff;"><i class="fa-solid fa-book-medical"></i></div>
+        <div class="v-stat-content">
+            <div class="v-stat-label">วิดีโอความรู้</div>
+            <div class="v-stat-value"><?php echo count($learningRows); ?></div>
+        </div>
+    </div>
+</div>
+
+<!-- Public Videos Section -->
+<section class="v-section">
+    <div class="v-section-header">
+        <h2>วิดีโอสาธารณะ</h2>
+        <p>กลุ่มนี้เหมาะกับคลิปสั้นหรือคลิปโปรโมตที่ต้องการให้หน้าเว็บเล่นหรือแสดงตัวอย่างได้ทันที</p>
     </div>
 
     <?php if ($publicRows): ?>
-        <div class="video-admin-grid">
+        <div class="v-grid">
             <?php foreach ($publicRows as $row): ?>
-                <div class="card video-admin-card">
-                    <div class="video-admin-card__thumb">
-                        <?php if (!empty($row['thumbnail'])): ?>
-                            <img src="/uploads/videos/<?php echo h($row['thumbnail']); ?>" alt="">
+                <?php
+                $rowPlatform = (string) ($row['platform'] ?? 'other');
+                $embedUrl = admin_video_embed_url($row['video_url'] ?? '', $rowPlatform);
+                ?>
+                <div class="v-card">
+                    <div class="v-card-thumb<?php echo ($embedUrl && str_contains($embedUrl, 'tiktok.com/player')) ? ' v-card-thumb--tall' : ''; ?>">
+                        <?php if ($embedUrl): ?>
+                            <iframe src="<?php echo h($embedUrl); ?>" title="<?php echo h($row['title'] ?? 'Video'); ?>" allow="fullscreen" allowfullscreen loading="lazy"></iframe>
+                        <?php elseif (!empty($row['thumbnail'])): ?>
+                            <img src="<?php echo h(upload_url($row['thumbnail'], 'videos')); ?>" alt="">
+                            <div class="v-card-play"><i class="fa-solid fa-play"></i></div>
                         <?php else: ?>
-                            <i class="fa-brands fa-tiktok"></i>
+                            <div class="v-card-thumb-placeholder"><i class="fa-brands fa-tiktok"></i></div>
+                            <div class="v-card-play"><i class="fa-solid fa-play"></i></div>
                         <?php endif; ?>
                     </div>
-                    <div class="video-admin-card__meta">
-                        <span class="video-admin-pill"><i class="fa-solid fa-earth-asia"></i>สาธารณะ</span>
-                        <span class="video-admin-pill"><?php echo h(strtoupper((string) ($row['platform'] ?? 'other'))); ?></span>
-                        <span class="status <?php echo (int) $row['is_active'] === 1 ? 'status--on' : 'status--off'; ?>"><?php echo (int) $row['is_active'] === 1 ? 'แสดง' : 'ซ่อน'; ?></span>
-                    </div>
-                    <div class="video-admin-card__title"><?php echo h($row['title'] ?: 'ไม่มีชื่อ'); ?></div>
-                    <a class="video-admin-card__url" href="<?php echo h($row['video_url']); ?>" target="_blank" rel="noopener"><?php echo h($row['video_url']); ?></a>
-                    <div class="video-admin-card__summary"><?php echo h(trim((string) ($row['description'] ?? '')) ?: 'ใช้สำหรับคลิปสาธารณะที่ต้องการแสดงบนหน้าเว็บแบบเข้าถึงง่าย'); ?></div>
-                    <div class="video-admin-card__details">
-                        <strong>ลำดับการแสดง:</strong> <?php echo (int) $row['sort_order']; ?>
-                    </div>
-                    <div class="actions" style="margin-top:12px;">
-                        <a class="btn btn--primary" style="flex:1;" href="/admin/videos.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i>แก้ไข</a>
-                        <a class="btn btn--danger" style="flex:1;" href="/admin/videos.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('ลบวิดีโอนี้?');"><i class="fa-solid fa-trash"></i>ลบ</a>
+                    <div class="v-card-body">
+                        <div class="v-card-badges">
+                            <span class="v-badge v-badge-blue"><i class="fa-solid fa-earth-asia"></i> สาธารณะ</span>
+                            <span class="v-badge v-badge-gray"><?php echo h(strtoupper((string) ($row['platform'] ?? 'other'))); ?></span>
+                            <?php if((int) $row['is_active'] === 1): ?>
+                                <span class="v-badge v-badge-green">แสดง</span>
+                            <?php else: ?>
+                                <span class="v-badge v-badge-red">ซ่อน</span>
+                            <?php endif; ?>
+                        </div>
+                        <h3 class="v-card-title"><?php echo h($row['title'] ?: 'ไม่มีชื่อ'); ?></h3>
+                        <div class="v-card-desc"><?php echo h(trim((string) ($row['description'] ?? '')) ?: 'ไม่มีคำอธิบาย'); ?></div>
+                        
+                        <div class="v-card-meta">
+                            <span>จัดลำดับ: <?php echo (int) $row['sort_order']; ?></span>
+                            <a href="<?php echo h($row['video_url']); ?>" target="_blank" rel="noopener" style="color: #2563eb; font-weight: 500;"><i class="fa-solid fa-link"></i> เปิดลิงก์</a>
+                        </div>
+                        
+                        <div class="v-card-actions">
+                            <a class="v-card-btn v-card-btn-edit" href="/admin/videos.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</a>
+                            <form method="post" onsubmit="return confirm('ลบวิดีโอนี้?');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                                <button class="v-card-btn v-card-btn-del" type="submit"><i class="fa-solid fa-trash"></i> ลบ</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
     <?php else: ?>
-        <div class="card video-admin-empty">ยังไม่มีวิดีโอสาธารณะ เพิ่มคลิปสำหรับหน้าแรกหรือหน้า Video Channel ได้จากปุ่มด้านบน</div>
+        <div class="card video-admin-empty" style="padding: 48px; text-align: center; color: #64748b; background: #ffffff; border-radius: 20px; border: 1px dashed #cbd5e1; box-shadow: none;">
+            <i class="fa-solid fa-video-slash" style="font-size: 32px; color: #94a3b8; margin-bottom: 16px;"></i>
+            <div style="font-size: 16px; font-weight: 500; color: #1e293b; margin-bottom: 8px;">ยังไม่มีวิดีโอสาธารณะ</div>
+            <p style="margin: 0; font-size: 14px;">เพิ่มคลิปสำหรับหน้าแรกได้จากปุ่ม "เพิ่มวิดีโอสาธารณะ" ด้านบน</p>
+        </div>
     <?php endif; ?>
 </section>
 
-<section class="video-admin-section">
-    <div class="video-admin-section__head">
-        <div>
-            <h2 class="video-admin-section__title">วิดีโอความรู้</h2>
-            <p class="video-admin-section__desc">กลุ่มนี้ใช้กับคลิปสำหรับสมาชิกหรือแพทย์ที่ต้องมีรายละเอียดมากขึ้น เช่น สรุปสั้น เนื้อหาเต็ม และหน้า detail ที่พร้อมส่งต่อไปยัง YouTube หรือแพลตฟอร์มต้นทาง</p>
-        </div>
-        <div class="video-admin-count"><i class="fa-solid fa-book-medical"></i><?php echo count($learningRows); ?> รายการ</div>
+<!-- Learning Videos Section -->
+<section class="v-section">
+    <div class="v-section-header">
+        <h2>วิดีโอความรู้</h2>
+        <p>กลุ่มนี้ใช้กับคลิปสำหรับสมาชิกหรือแพทย์ที่ต้องมีรายละเอียดมากขึ้น เช่น สรุปสั้น เนื้อหาเต็ม</p>
     </div>
 
     <?php if ($learningRows): ?>
-        <div class="video-admin-grid">
+        <div class="v-grid">
             <?php foreach ($learningRows as $row): ?>
-                <?php $rowAccess = normalize_video_access_level($row['access_level'] ?? 'public'); ?>
-                <div class="card video-admin-card">
-                    <div class="video-admin-card__thumb">
-                        <?php if (!empty($row['thumbnail'])): ?>
-                            <img src="/uploads/videos/<?php echo h($row['thumbnail']); ?>" alt="">
+                <?php
+                $rowAccess = normalize_video_access_level($row['access_level'] ?? 'public');
+                $rowPlatform = (string) ($row['platform'] ?? 'other');
+                $embedUrl = admin_video_embed_url($row['video_url'] ?? '', $rowPlatform);
+                ?>
+                <div class="v-card">
+                    <div class="v-card-thumb<?php echo ($embedUrl && str_contains($embedUrl, 'tiktok.com/player')) ? ' v-card-thumb--tall' : ''; ?>">
+                        <?php if ($embedUrl): ?>
+                            <iframe src="<?php echo h($embedUrl); ?>" title="<?php echo h($row['title'] ?? 'Video'); ?>" allow="fullscreen" allowfullscreen loading="lazy"></iframe>
+                        <?php elseif (!empty($row['thumbnail'])): ?>
+                            <img src="<?php echo h(upload_url($row['thumbnail'], 'videos')); ?>" alt="">
+                            <div class="v-card-play"><i class="fa-solid fa-play"></i></div>
                         <?php else: ?>
-                            <i class="fa-solid fa-circle-play"></i>
+                            <div class="v-card-thumb-placeholder"><i class="fa-solid fa-book-medical"></i></div>
+                            <div class="v-card-play"><i class="fa-solid fa-play"></i></div>
                         <?php endif; ?>
                     </div>
-                    <div class="video-admin-card__meta">
-                        <span class="video-admin-pill video-admin-pill--learning"><i class="fa-solid fa-book-open-reader"></i>วิดีโอความรู้</span>
-                        <span class="video-admin-pill <?php echo $rowAccess === 'doctor' ? 'video-admin-pill--doctor' : 'video-admin-pill--member'; ?>">
-                            <?php echo h(video_access_label($rowAccess)); ?>
-                        </span>
-                        <span class="video-admin-pill"><?php echo h(strtoupper((string) ($row['platform'] ?? 'other'))); ?></span>
-                        <span class="status <?php echo (int) $row['is_active'] === 1 ? 'status--on' : 'status--off'; ?>"><?php echo (int) $row['is_active'] === 1 ? 'แสดง' : 'ซ่อน'; ?></span>
-                    </div>
-                    <div class="video-admin-card__title"><?php echo h($row['title'] ?: 'ไม่มีชื่อ'); ?></div>
-                    <a class="video-admin-card__url" href="<?php echo h($row['video_url']); ?>" target="_blank" rel="noopener"><?php echo h($row['video_url']); ?></a>
-                    <div class="video-admin-card__summary"><?php echo h(trim((string) ($row['detail_summary'] ?? '')) ?: trim((string) ($row['description'] ?? '')) ?: 'วิดีโอความรู้รายการนี้ควรมีสรุปสั้นและเนื้อหาเต็มเพื่อใช้ในหน้ารายละเอียด'); ?></div>
-                    <div class="video-admin-card__details">
-                        <strong>ข้อมูล detail:</strong>
-                        <?php echo trim((string) ($row['detail_content'] ?? '')) !== '' ? 'มีเนื้อหาเต็มพร้อมใช้' : 'ยังไม่ได้เพิ่มเนื้อหาเต็ม'; ?>
-                        <br>
-                        <strong>ลำดับการแสดง:</strong> <?php echo (int) $row['sort_order']; ?>
-                    </div>
-                    <div class="actions" style="margin-top:12px;">
-                        <a class="btn btn--primary" style="flex:1;" href="/admin/videos.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i>แก้ไข</a>
-                        <a class="btn btn--danger" style="flex:1;" href="/admin/videos.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('ลบวิดีโอนี้?');"><i class="fa-solid fa-trash"></i>ลบ</a>
+                    <div class="v-card-body">
+                        <div class="v-card-badges">
+                            <span class="v-badge v-badge-purple"><i class="fa-solid fa-book-open-reader"></i> ความรู้</span>
+                            <?php if ($rowAccess === 'doctor'): ?>
+                                <span class="v-badge v-badge-red"><?php echo h(video_access_label($rowAccess)); ?></span>
+                            <?php else: ?>
+                                <span class="v-badge v-badge-indigo"><?php echo h(video_access_label($rowAccess)); ?></span>
+                            <?php endif; ?>
+                            <?php if((int) $row['is_active'] === 1): ?>
+                                <span class="v-badge v-badge-green">แสดง</span>
+                            <?php else: ?>
+                                <span class="v-badge v-badge-red">ซ่อน</span>
+                            <?php endif; ?>
+                        </div>
+                        <h3 class="v-card-title"><?php echo h($row['title'] ?: 'ไม่มีชื่อ'); ?></h3>
+                        <div class="v-card-desc"><?php echo h(trim((string) ($row['detail_summary'] ?? '')) ?: trim((string) ($row['description'] ?? '')) ?: 'ไม่มีคำอธิบาย'); ?></div>
+                        
+                        <div class="v-card-meta">
+                            <span>จัดลำดับ: <?php echo (int) $row['sort_order']; ?></span>
+                            <?php if(trim((string) ($row['detail_content'] ?? '')) !== ''): ?>
+                                <span style="color:#16a34a; font-weight: 500;"><i class="fa-solid fa-file-lines"></i> มีเนื้อหาเต็ม</span>
+                            <?php else: ?>
+                                <span style="color:#94a3b8;"><i class="fa-solid fa-file-excel"></i> ไม่มีเนื้อหา</span>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="v-card-actions">
+                            <a class="v-card-btn v-card-btn-edit" href="/admin/videos.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</a>
+                            <form method="post" onsubmit="return confirm('ลบวิดีโอนี้?');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                                <button class="v-card-btn v-card-btn-del" type="submit"><i class="fa-solid fa-trash"></i> ลบ</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
     <?php else: ?>
-        <div class="card video-admin-empty">ยังไม่มีวิดีโอความรู้ เพิ่มคลิปสำหรับสมาชิกหรือแพทย์พร้อมข้อมูลหน้ารายละเอียดได้จากปุ่ม “เพิ่มวิดีโอความรู้”</div>
+        <div class="card video-admin-empty" style="padding: 48px; text-align: center; color: #64748b; background: #ffffff; border-radius: 20px; border: 1px dashed #cbd5e1; box-shadow: none;">
+            <i class="fa-solid fa-book-medical" style="font-size: 32px; color: #94a3b8; margin-bottom: 16px;"></i>
+            <div style="font-size: 16px; font-weight: 500; color: #1e293b; margin-bottom: 8px;">ยังไม่มีวิดีโอความรู้</div>
+            <p style="margin: 0; font-size: 14px;">เพิ่มคลิปสำหรับสมาชิกหรือแพทย์ได้จากปุ่ม "เพิ่มวิดีโอความรู้" ด้านบน</p>
+        </div>
     <?php endif; ?>
 </section>
 
+<!-- Modal -->
 <div class="modal <?php echo $editing ? 'is-open' : ''; ?>" id="videoModal">
     <div class="modal__dialog" style="max-width:760px;">
         <div class="modal__head">
@@ -536,6 +690,8 @@ require_once __DIR__ . '/partials/header.php';
         </div>
 
         <form method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?php echo (int) $item['id']; ?>">
             <input type="hidden" name="current_thumbnail" value="<?php echo h($item['thumbnail']); ?>">
             <input type="hidden" name="video_mode" id="videoMode" value="<?php echo h($currentMode); ?>">
@@ -568,9 +724,9 @@ require_once __DIR__ . '/partials/header.php';
                 <textarea name="description" rows="4"><?php echo h($item['description']); ?></textarea>
             </div>
 
-            <div id="learningVideoFields" style="margin-top:18px; border:1px solid #dbe2f0; border-radius:16px; padding:16px; background:#f8fbff;">
-                <div style="font-weight:800; color:#1e3a8a; margin-bottom:6px;">ข้อมูลสำหรับหน้ารายละเอียดวิดีโอความรู้</div>
-                <div class="muted" style="margin-bottom:14px;">ใช้กับวิดีโอที่มีสิทธิ์ <strong>member</strong> หรือ <strong>doctor</strong> เพื่อแสดงรายละเอียดมากกว่าวิดีโอสาธารณะ</div>
+            <div id="learningVideoFields" style="margin-top:18px; border:1px solid #dbe2f0; border-radius:12px; padding:16px; background:#f8fbff;">
+                <div style="font-weight:700; color:#1e3a8a; margin-bottom:6px;">ข้อมูลสำหรับหน้ารายละเอียดวิดีโอความรู้</div>
+                <div class="muted" style="margin-bottom:14px; font-size:13px;">ใช้กับวิดีโอที่มีสิทธิ์ <strong>member</strong> หรือ <strong>doctor</strong> เพื่อแสดงรายละเอียดมากกว่าวิดีโอสาธารณะ</div>
 
                 <div class="field">
                     <label>สรุปสั้นบนหน้า detail</label>
@@ -585,7 +741,7 @@ require_once __DIR__ . '/partials/header.php';
             <div class="row">
                 <div class="field">
                     <label>Thumbnail</label>
-                    <input type="file" name="thumbnail" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="file" name="thumbnail" accept=".jpg,.jpeg,.png,.webp,.svg">
                 </div>
                 <div class="field">
                     <label>Platform</label>
@@ -624,8 +780,8 @@ require_once __DIR__ . '/partials/header.php';
                 </div>
             </div>
 
-            <div class="actions" style="margin-top:8px;">
-                <button class="btn btn--primary" type="submit"><i class="fa-solid fa-floppy-disk"></i>บันทึก</button>
+            <div class="actions" style="margin-top:16px;">
+                <button class="btn btn--primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>
                 <button class="btn btn--muted" type="button" data-modal-close="videoModal">ยกเลิก</button>
             </div>
         </form>

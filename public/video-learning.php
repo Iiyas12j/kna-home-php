@@ -10,6 +10,29 @@ function learning_thumbnail_url(?string $thumbnail): string
     return '/uploads/videos/' . rawurlencode($thumbnail);
 }
 
+function learning_youtube_id(?string $url): ?string
+{
+    $url = trim((string) $url);
+    if ($url === '') return null;
+    if (preg_match('#youtu\.be/([A-Za-z0-9_-]{6,})#', $url, $m)) return $m[1];
+    if (preg_match('#youtube\.com/(?:watch\?.*v=|embed/|shorts/|live/)([A-Za-z0-9_-]{6,})#', $url, $m)) return $m[1];
+    return null;
+}
+
+function learning_embed_url(?string $url): ?string
+{
+    $url = trim((string) $url);
+    if ($url === '') return null;
+    $youtubeId = learning_youtube_id($url);
+    if ($youtubeId !== null) {
+        return 'https://www.youtube-nocookie.com/embed/' . rawurlencode($youtubeId) . '?rel=0';
+    }
+    if (preg_match('#facebook\.com/.+/videos/|fb\.watch/#i', $url)) {
+        return 'https://www.facebook.com/plugins/video.php?show_text=false&href=' . rawurlencode($url);
+    }
+    return null;
+}
+
 $dbReady  = $pdo instanceof PDO;
 $dbError  = '';
 $member   = current_member();
@@ -82,7 +105,7 @@ $siteHeaderActive = 'vdo';
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_32%),linear-gradient(135deg,#0f172a_0%,#1e3a5f_52%,#312e81_100%)]"></div>
         <div class="absolute right-[-80px] top-10 h-64 w-64 rounded-full bg-white/5 blur-3xl"></div>
         <div class="absolute left-[-60px] bottom-0 h-52 w-52 rounded-full bg-indigo-300/10 blur-3xl"></div>
-        <div class="relative mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 lg:px-8">
+        <div class="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8">
             <div class="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
                 <div class="max-w-2xl">
                     <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur">
@@ -224,29 +247,41 @@ $siteHeaderActive = 'vdo';
 
             <?php else: ?>
             <!-- ── แสดงวิดีโอ ───────────────────────────────────────────────────── -->
-            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
                 <?php foreach ($learningVideos as $video): ?>
                     <?php
                     $thumbUrl    = learning_thumbnail_url($video['thumbnail'] ?? '');
                     $accessLevel = normalize_video_access_level($video['access_level'] ?? 'public');
+                    $embedUrl    = learning_embed_url($video['video_url'] ?? '');
+                    $detailUrl   = '/video-detail.php?id=' . (int) ($video['id'] ?? 0);
+                    $isYouTube   = $embedUrl !== null && str_contains($embedUrl, 'youtube');
                     ?>
-                    <a href="/video-detail.php?id=<?php echo (int) ($video['id'] ?? 0); ?>"
-                       class="group block overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg">
-                        <div class="aspect-video overflow-hidden bg-slate-100">
-                            <?php if ($thumbUrl !== ''): ?>
-                                <img src="<?php echo h($thumbUrl); ?>"
-                                     alt="<?php echo h($video['title'] ?? 'Video'); ?>"
-                                     class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                    <article class="group flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg">
+                        <div class="aspect-video overflow-hidden bg-slate-900">
+                            <?php if ($embedUrl !== null): ?>
+                                <iframe
+                                    src="<?php echo h($embedUrl); ?>"
+                                    title="<?php echo h($video['title'] ?? 'Video'); ?>"
+                                    class="block h-full w-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                                    allowfullscreen
+                                    loading="lazy"></iframe>
+                            <?php elseif ($thumbUrl !== ''): ?>
+                                <a href="<?php echo h($detailUrl); ?>" class="block h-full w-full">
+                                    <img src="<?php echo h($thumbUrl); ?>"
+                                         alt="<?php echo h($video['title'] ?? 'Video'); ?>"
+                                         class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                </a>
                             <?php else: ?>
-                                <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-700 to-indigo-500 text-4xl text-white/80">
+                                <a href="<?php echo h($detailUrl); ?>" class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-700 to-indigo-500 text-4xl text-white/80">
                                     <i class="fa-solid fa-circle-play"></i>
-                                </div>
+                                </a>
                             <?php endif; ?>
                         </div>
-                        <div class="p-5">
+                        <div class="flex flex-1 flex-col p-5">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-indigo-600">
-                                    <?php echo h($video['platform'] ?? 'video'); ?>
+                                    <?php echo $isYouTube ? 'YouTube' : h($video['platform'] ?? 'video'); ?>
                                 </span>
                                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold
                                     <?php echo $accessLevel === 'doctor' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700'; ?>">
@@ -261,12 +296,13 @@ $siteHeaderActive = 'vdo';
                                     <?php echo h($video['description']); ?>
                                 </p>
                             <?php endif; ?>
-                            <div class="mt-4 flex items-center gap-2 text-sm font-semibold text-indigo-700 transition-all group-hover:gap-3">
+                            <a href="<?php echo h($detailUrl); ?>"
+                               class="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-semibold text-indigo-700 transition-all hover:gap-3">
                                 <span>ดูรายละเอียด</span>
                                 <i class="fa-solid fa-arrow-right text-xs"></i>
-                            </div>
+                            </a>
                         </div>
-                    </a>
+                    </article>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>

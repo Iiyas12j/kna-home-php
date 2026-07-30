@@ -28,20 +28,16 @@ $item = [
 $editing = false;
 $uploadDir = __DIR__ . '/../uploads/news';
 
-if ($db_ready && isset($_GET['delete'])) {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') === 'delete') {
     try {
-        $id = (int) $_GET['delete'];
+        require_valid_csrf();
+        $id = (int) ($_POST['id'] ?? 0);
         $stmt = $pdo->prepare('SELECT hero_image FROM news_events WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         if ($row) {
             $pdo->prepare('DELETE FROM news_events WHERE id = ?')->execute([$id]);
-            if (!empty($row['hero_image'])) {
-                $file = $uploadDir . '/' . $row['hero_image'];
-                if (is_file($file)) {
-                    unlink($file);
-                }
-            }
+            delete_uploaded_file($row['hero_image'] ?? '', $uploadDir, 'news');
         }
         header('Location: /admin/news.php');
         exit;
@@ -50,13 +46,18 @@ if ($db_ready && isset($_GET['delete'])) {
     }
 }
 
-if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') !== 'delete') {
+    try {
+        require_valid_csrf();
+    } catch (Exception $e) {
+        $errors[] = $e->getMessage();
+    }
     $id = (int) ($_POST['id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $summary = trim($_POST['summary'] ?? '');
     $category = $_POST['category'] ?? 'news';
     $published_at = trim($_POST['published_at'] ?? '');
-    $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $is_active = (int) ($_POST['is_active'] ?? 0) === 1 ? 1 : 0;
     $current_image = $_POST['current_image'] ?? '';
 
     if ($title === '' || $summary === '') {
@@ -85,10 +86,7 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($newImage && $current_image && $newImage !== $current_image) {
-                $old = $uploadDir . '/' . $current_image;
-                if (is_file($old)) {
-                    unlink($old);
-                }
+                delete_uploaded_file($current_image, $uploadDir, 'news');
             }
 
             header('Location: /admin/news.php');
@@ -171,7 +169,7 @@ require_once __DIR__ . '/partials/header.php';
                 <tr>
                     <td>
                         <?php if (!empty($row['hero_image'])): ?>
-                            <img src="/uploads/news/<?php echo h($row['hero_image']); ?>" alt="" style="width:58px; height:58px; border-radius:8px; object-fit:cover; background:#e5e7eb;">
+                            <img src="<?php echo h(upload_url($row['hero_image'], 'news')); ?>" alt="" style="width:58px; height:58px; border-radius:8px; object-fit:cover; background:#e5e7eb;">
                         <?php else: ?>
                             <div style="width:58px; height:58px; border-radius:8px; background:#e5e7eb; display:grid; place-items:center; color:#9ca3af;"><i class="fa-regular fa-image"></i></div>
                         <?php endif; ?>
@@ -187,7 +185,12 @@ require_once __DIR__ . '/partials/header.php';
                     <td>
                         <div class="actions">
                             <a class="iconBtn" href="/admin/news.php?edit=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen-to-square"></i></a>
-                            <a class="iconBtn iconBtn--danger" href="/admin/news.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('ลบข่าวนี้?');"><i class="fa-solid fa-trash"></i></a>
+                            <form method="post" onsubmit="return confirm('ลบข่าวนี้?');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                                <button class="iconBtn iconBtn--danger" type="submit"><i class="fa-solid fa-trash"></i></button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -207,6 +210,8 @@ require_once __DIR__ . '/partials/header.php';
         </div>
 
         <form method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?php echo (int) $item['id']; ?>">
             <input type="hidden" name="current_image" value="<?php echo h($item['hero_image']); ?>">
 
@@ -238,7 +243,7 @@ require_once __DIR__ . '/partials/header.php';
             <div class="row">
                 <div class="field">
                     <label>รูปภาพ</label>
-                    <input type="file" name="hero_image" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="file" name="hero_image" accept=".jpg,.jpeg,.png,.webp,.svg">
                 </div>
                 <div class="field">
                     <label>สถานะ</label>

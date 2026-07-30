@@ -22,8 +22,6 @@ function require_admin(): void
 
 function admin_login(PDO $pdo, string $email, string $password): bool
 {
-    ensure_admin_user_registration_columns($pdo);
-
     $stmt = $pdo->prepare('SELECT id, password_hash, role, is_active FROM admin_users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     $admin = $stmt->fetch();
@@ -46,6 +44,7 @@ function admin_login(PDO $pdo, string $email, string $password): bool
 
     $pdo->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = ?')->execute([$admin['id']]);
 
+    session_regenerate_id(true);
     $_SESSION['admin_id']    = $admin['id'];
     $_SESSION['admin_email'] = $email;
     return true;
@@ -142,8 +141,6 @@ function member_can_access_video(string $accessLevel): bool
 
 function member_login(PDO $pdo, string $email, string $password): bool
 {
-    ensure_admin_user_registration_columns($pdo);
-
     $stmt = $pdo->prepare('SELECT id, email, name, role, password_hash, is_active FROM admin_users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     $member = $stmt->fetch();
@@ -162,6 +159,7 @@ function member_login(PDO $pdo, string $email, string $password): bool
 
     $pdo->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = ?')->execute([$member['id']]);
 
+    session_regenerate_id(true);
     $_SESSION['member_id']    = (int) $member['id'];
     $_SESSION['member_email'] = (string) $member['email'];
     $_SESSION['member_name']  = (string) ($member['name'] ?? '');
@@ -177,12 +175,15 @@ function member_login_rl_key(): string
 
 function member_register(PDO $pdo, string $name, string $email, string $password, array $options = [], ?string &$error = null): bool
 {
-    ensure_admin_user_registration_columns($pdo);
-
     $name = trim($name);
     $email = trim($email);
-    $requestedRole = member_registration_role($options['requested_role'] ?? 'member');
+    $requestedRole   = member_registration_role($options['requested_role'] ?? 'member');
     $doctorLicenseNo = trim((string) ($options['doctor_license_no'] ?? ''));
+    $lastName        = trim((string) ($options['last_name'] ?? ''));
+    $hospitalClinic  = trim((string) ($options['hospital_clinic'] ?? ''));
+    $province        = trim((string) ($options['province'] ?? ''));
+    $phone           = trim((string) ($options['phone'] ?? ''));
+    $lineId          = trim((string) ($options['line_id'] ?? ''));
 
     if ($name === '' || $email === '' || $password === '') {
         $error = 'กรุณากรอกข้อมูลให้ครบ';
@@ -208,17 +209,25 @@ function member_register(PDO $pdo, string $name, string $email, string $password
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("
-        INSERT INTO admin_users (email, password_hash, name, role, requested_role, doctor_license_no, is_active, created_at)
-        VALUES (?, ?, ?, 'member', ?, ?, 1, NOW())
+        INSERT INTO admin_users
+            (email, password_hash, name, last_name, role, requested_role, doctor_license_no,
+             hospital_clinic, province, phone, line_id, is_active, created_at)
+        VALUES (?, ?, ?, ?, 'member', ?, ?, ?, ?, ?, ?, 1, NOW())
     ");
     $stmt->execute([
         $email,
         $hash,
         $name,
+        $lastName !== '' ? $lastName : null,
         $requestedRole,
         $doctorLicenseNo !== '' ? $doctorLicenseNo : null,
+        $hospitalClinic !== '' ? $hospitalClinic : null,
+        $province !== '' ? $province : null,
+        $phone !== '' ? $phone : null,
+        $lineId !== '' ? $lineId : null,
     ]);
 
+    session_regenerate_id(true);
     $_SESSION['member_id'] = (int) $pdo->lastInsertId();
     $_SESSION['member_email'] = $email;
     $_SESSION['member_name'] = $name;

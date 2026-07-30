@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/s3.php';
 
 function h($value): string
 {
@@ -24,34 +25,200 @@ function asset_url(string $path): string
     return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
 }
 
-function save_uploaded_image(array $file, string $destDir, string $prefix = 'img'): ?string
+function upload_url(string $value, string $folder = ''): string
 {
-    if (!isset($file['tmp_name']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+        return $value;
+    }
+    $folder = trim($folder, '/');
+    return $folder !== ''
+        ? '/uploads/' . $folder . '/' . rawurlencode($value)
+        : '/uploads/' . rawurlencode($value);
+}
+
+function save_uploaded_image(array $file, string $destDir, string $prefix = 'img', int $maxBytes = 5242880): ?string
+{
+    if (!isset($file['tmp_name'], $file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
     }
 
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Upload failed');
+    if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
+        throw new RuntimeException('ไฟล์ใหญ่เกินขีดจำกัดของเซิร์ฟเวอร์ กรุณาใช้ไฟล์ขนาดเล็กลง');
     }
 
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-    if (!in_array($ext, $allowed, true)) {
-        throw new RuntimeException('Invalid file type');
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('อัปโหลดไฟล์ไม่สำเร็จ (error code ' . (int) $file['error'] . ') กรุณาลองใหม่');
+    }
+
+    $tmpFile = (string) $file['tmp_name'];
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes || !is_uploaded_file($tmpFile)) {
+        throw new RuntimeException('ไฟล์รูปต้องมีขนาดไม่เกิน 5 MB');
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = (string) $finfo->file($tmpFile);
+
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        $head = (string) file_get_contents($tmpFile, false, null, 0, 4096);
+        if (stripos($head, '<svg') !== false
+            && in_array($mime, ['image/svg+xml', 'image/svg', 'text/xml', 'application/xml', 'text/plain', 'text/html'], true)) {
+            $mime = 'image/svg+xml';
+        }
+    }
+
+    $allowed = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/svg+xml' => 'svg',
+    ];
+    if (!isset($allowed[$mime])) {
+        throw new RuntimeException('รองรับเฉพาะไฟล์รูป JPG, PNG, WebP และ SVG');
+    }
+
+    if ($mime === 'image/svg+xml') {
+        if (!svg_is_safe((string) file_get_contents($tmpFile))) {
+            throw new RuntimeException('ไฟล์ SVG มีเนื้อหาที่ไม่ปลอดภัย ไม่อนุญาตให้อัปโหลด');
+        }
+    } elseif (@getimagesize($tmpFile) === false) {
+        throw new RuntimeException('ไฟล์รูปไม่ถูกต้องหรือเสียหาย');
+    }
+
+    $ext = $allowed[$mime];
+    $filename = $prefix . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+
+    if (s3_configured()) {
+        $subfolder = basename(rtrim($destDir, '/'));
+        return s3_upload($tmpFile, 'uploads/' . $subfolder . '/' . $filename, $mime);
     }
 
     if (!is_dir($destDir)) {
         mkdir($destDir, 0775, true);
     }
 
-    $filename = $prefix . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
     $target = rtrim($destDir, '/') . '/' . $filename;
-
     if (!move_uploaded_file($file['tmp_name'], $target)) {
         throw new RuntimeException('Upload failed');
     }
 
     return $filename;
+}
+
+function normalize_uploaded_files(array $files): array
+{
+    if (!isset($files['name'])) {
+        return [];
+    }
+    if (!is_array($files['name'])) {
+        return [$files];
+    }
+
+    $out = [];
+    foreach ($files['name'] as $i => $name) {
+        $out[] = [
+            'name' => $name,
+            'type' => $files['type'][$i] ?? '',
+            'tmp_name' => $files['tmp_name'][$i] ?? '',
+            'error' => $files['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+            'size' => $files['size'][$i] ?? 0,
+        ];
+    }
+    return $out;
+}
+
+function svg_is_safe(string $svg): bool
+{
+    // Reject DOCTYPE/entities outright (XXE / entity-encoding tricks).
+    if (preg_match('/<!DOCTYPE|<!ENTITY/i', $svg)) {
+        return false;
+    }
+
+    $prev = libxml_use_internal_errors(true);
+    $doc = new DOMDocument();
+    $loaded = $doc->loadXML($svg, LIBXML_NONET);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+    if (!$loaded) {
+        return false;
+    }
+
+    $blockedTags = ['script', 'foreignobject', 'iframe', 'embed', 'object', 'use', 'animate', 'set', 'handler'];
+    $xpath = new DOMXPath($doc);
+    foreach ($xpath->query('//*') as $node) {
+        if (in_array(strtolower($node->localName ?? ''), $blockedTags, true)) {
+            return false;
+        }
+        if (!$node->hasAttributes()) {
+            continue;
+        }
+        foreach ($node->attributes as $attr) {
+            $name = strtolower($attr->localName ?? $attr->nodeName);
+            $value = strtolower(trim((string) $attr->nodeValue));
+            if (str_starts_with($name, 'on')) {
+                return false;
+            }
+            if (in_array($name, ['href', 'xlink:href', 'src'], true)
+                && $value !== '' && !str_starts_with($value, '#')
+                && !str_starts_with($value, 'data:image/')
+                && !preg_match('#^https?://#', $value)) {
+                return false;
+            }
+            if (str_contains($value, 'javascript:') || str_contains($value, 'data:text')) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function delete_uploaded_file(?string $value, string $destDir, string $folder): void
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return;
+    }
+
+    if (preg_match('#^https?://#i', $value)) {
+        $path = parse_url($value, PHP_URL_PATH);
+        $key = ltrim(rawurldecode((string) $path), '/');
+        if (s3_configured() && str_starts_with($key, 'uploads/')) {
+            s3_delete($key);
+        }
+        return;
+    }
+
+    $filename = basename($value);
+    $localPath = rtrim($destDir, '/') . '/' . $filename;
+    if (is_file($localPath)) {
+        unlink($localPath);
+        return;
+    }
+
+    if (s3_configured()) {
+        s3_delete('uploads/' . trim($folder, '/') . '/' . $filename);
+    }
+}
+
+function require_valid_csrf(): void
+{
+    // When the request body exceeds post_max_size, PHP drops $_POST/$_FILES
+    // entirely — surface that as a clear message instead of a CSRF failure.
+    $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if ($contentLength > 0 && empty($_POST) && empty($_FILES)) {
+        http_response_code(413);
+        throw new RuntimeException('ไฟล์ที่อัปโหลดใหญ่เกินไป เซิร์ฟเวอร์ไม่รับข้อมูล กรุณาใช้ไฟล์ขนาดเล็กลง');
+    }
+
+    if (!csrf_verify()) {
+        http_response_code(403);
+        throw new RuntimeException('คำขอไม่ถูกต้อง กรุณาลองใหม่');
+    }
 }
 
 function normalize_video_access_level(?string $value): string
@@ -71,101 +238,6 @@ function video_access_label(?string $value): string
     };
 }
 
-function ensure_videos_access_level_column(PDO $pdo): void
-{
-    static $checked = false;
-
-    if ($checked) {
-        return;
-    }
-
-    $checked = true;
-
-    $stmt = $pdo->query("
-        SELECT COUNT(*)
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'videos'
-          AND COLUMN_NAME = 'access_level'
-    ");
-
-    if ((int) $stmt->fetchColumn() === 0) {
-        $pdo->exec("ALTER TABLE videos ADD COLUMN access_level VARCHAR(20) NOT NULL DEFAULT 'public' AFTER platform");
-    }
-
-    $pdo->exec("UPDATE videos SET access_level = 'public' WHERE access_level IS NULL OR access_level = ''");
-}
-
-function ensure_videos_detail_columns(PDO $pdo): void
-{
-    static $checked = false;
-
-    if ($checked) {
-        return;
-    }
-
-    $checked = true;
-
-    $columns = [
-        'detail_summary' => "ALTER TABLE videos ADD COLUMN detail_summary TEXT NULL AFTER description",
-        'detail_content' => "ALTER TABLE videos ADD COLUMN detail_content LONGTEXT NULL AFTER detail_summary",
-    ];
-
-    foreach ($columns as $columnName => $sql) {
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*)
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'videos'
-              AND COLUMN_NAME = ?
-        ");
-        $stmt->execute([$columnName]);
-
-        if ((int) $stmt->fetchColumn() === 0) {
-            $pdo->exec($sql);
-        }
-    }
-}
-
-function ensure_admin_user_registration_columns(PDO $pdo): void
-{
-    static $checked = false;
-
-    if ($checked) {
-        return;
-    }
-
-    $checked = true;
-
-    $columns = [
-        'requested_role' => "ALTER TABLE admin_users ADD COLUMN requested_role VARCHAR(40) NOT NULL DEFAULT 'member' AFTER role",
-        'doctor_license_no' => "ALTER TABLE admin_users ADD COLUMN doctor_license_no VARCHAR(120) NULL AFTER requested_role",
-    ];
-
-    foreach ($columns as $columnName => $sql) {
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*)
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'admin_users'
-              AND COLUMN_NAME = ?
-        ");
-        $stmt->execute([$columnName]);
-
-        if ((int) $stmt->fetchColumn() === 0) {
-            $pdo->exec($sql);
-        }
-    }
-
-    $pdo->exec("
-        UPDATE admin_users
-        SET requested_role = CASE
-            WHEN LOWER(COALESCE(role, 'member')) = 'doctor' THEN 'doctor'
-            ELSE 'member'
-        END
-        WHERE requested_role IS NULL OR requested_role = ''
-    ");
-}
 
 // ── CSRF Protection ───────────────────────────────────────────────────────────
 
@@ -219,6 +291,11 @@ function rate_limit_check(string $key, int $maxAttempts = 5, int $lockSeconds = 
 
 function rate_limit_hit(string $key, int $maxAttempts = 5, int $lockSeconds = 900): void
 {
+    // In local development a long lockout only gets in the way of testing.
+    if (defined('APP_ENV') && APP_ENV === 'development') {
+        $lockSeconds = min($lockSeconds, 60);
+    }
+
     $file = _rl_file($key);
     $data = file_exists($file)
         ? (json_decode((string) file_get_contents($file), true) ?: [])
@@ -255,4 +332,65 @@ function rate_limit_wait_seconds(string $key): int
     $data = json_decode((string) file_get_contents($file), true) ?: [];
     $lockedUntil = (int) ($data['locked_until'] ?? 0);
     return $lockedUntil > time() ? $lockedUntil - time() : 0;
+}
+
+function ensure_videos_access_level_column(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM videos LIKE 'access_level'");
+    if ($stmt->fetch() === false) {
+        $pdo->exec("ALTER TABLE videos ADD COLUMN access_level VARCHAR(20) NOT NULL DEFAULT 'public'");
+    }
+}
+
+function ensure_videos_detail_columns(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    $columns = [
+        'detail_summary' => 'TEXT NULL',
+        'detail_content' => 'LONGTEXT NULL',
+    ];
+    foreach ($columns as $name => $definition) {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM videos LIKE ?");
+        $stmt->execute([$name]);
+        if ($stmt->fetch() === false) {
+            $pdo->exec("ALTER TABLE videos ADD COLUMN $name $definition");
+        }
+    }
+}
+
+function ensure_admin_user_registration_columns(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    $columns = [
+        'requested_role'    => "VARCHAR(20) NULL",
+        'doctor_license_no' => "VARCHAR(50) NULL",
+        'last_name'         => "VARCHAR(190) NULL",
+        'hospital_clinic'   => "VARCHAR(190) NULL",
+        'province'          => "VARCHAR(120) NULL",
+        'phone'             => "VARCHAR(50) NULL",
+        'line_id'           => "VARCHAR(120) NULL",
+    ];
+    foreach ($columns as $name => $definition) {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM admin_users LIKE ?");
+        $stmt->execute([$name]);
+        if ($stmt->fetch() === false) {
+            $pdo->exec("ALTER TABLE admin_users ADD COLUMN $name $definition");
+        }
+    }
 }

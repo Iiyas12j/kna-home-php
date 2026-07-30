@@ -18,6 +18,12 @@ function tiktok_video_id(?string $url): ?string
     return null;
 }
 
+function is_direct_video(?string $url): bool
+{
+    $url = strtolower(trim((string) $url));
+    return str_ends_with($url, '.mp4') || str_ends_with($url, '.webm');
+}
+
 $dbReady         = $pdo instanceof PDO;
 $dbError         = '';
 $hasTikTokEmbeds = false;
@@ -58,13 +64,27 @@ $siteHeaderActive = 'vdo';
         body { font-family: 'Kanit', sans-serif; }
         .tiktok-gallery {
             display: grid;
-            gap: 16px;
+            grid-template-columns: minmax(0, 340px);
+            gap: 24px;
+            justify-content: center;
         }
-        @media (min-width: 640px)  { .tiktok-gallery { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .tiktok-gallery { grid-template-columns: repeat(3, 1fr); gap: 20px; } }
-        @media (min-width: 1536px) { .tiktok-gallery { grid-template-columns: repeat(4, 1fr); } }
-        .tiktok-tile { overflow: hidden; border-radius: 20px; background: #fff; border: 1px solid #e2e8f0; }
-        .tiktok-tile .tiktok-embed { margin: 0 !important; }
+        @media (min-width: 640px)  { .tiktok-gallery { grid-template-columns: repeat(2, minmax(0, 340px)); } }
+        @media (min-width: 1024px) { .tiktok-gallery { grid-template-columns: repeat(3, minmax(0, 340px)); } }
+        @media (min-width: 1280px) { .tiktok-gallery { grid-template-columns: repeat(4, minmax(0, 320px)); gap: 28px; } }
+        .tiktok-tile {
+            overflow: hidden;
+            border-radius: 20px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .tiktok-tile:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px -12px rgba(15, 23, 42, .18);
+        }
+        .tiktok-tile iframe { display: block; width: 100%; height: 100%; border: 0; }
     </style>
 </head>
 <body class="bg-white text-slate-900">
@@ -72,10 +92,9 @@ $siteHeaderActive = 'vdo';
 
     <!-- Hero -->
     <section class="relative overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_32%),linear-gradient(135deg,#0f172a_0%,#312e81_52%,#7c3aed_100%)]"></div>
-        <div class="absolute right-[-80px] top-10 h-64 w-64 rounded-full bg-white/5 blur-3xl"></div>
-        <div class="absolute left-[-60px] bottom-0 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl"></div>
-        <div class="relative mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 lg:px-8">
+        <img src="/uploads/website/bg-contact-us/ChatGPT%20Image%2017%20มิ.ย.%202569%2022_04_11.png" alt="About Us Banner" class="absolute inset-0 h-full w-full object-cover">
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div class="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8">
             <div class="max-w-2xl">
                 <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur">
                     <i class="fa-brands fa-tiktok"></i> TikTok Channel
@@ -83,9 +102,7 @@ $siteHeaderActive = 'vdo';
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
                     คลิป TikTok<br class="hidden sm:block">KNA Interpharma
                 </h1>
-                <p class="mt-5 text-base leading-8 text-slate-300">
-                    คอนเทนต์สาธารณะจาก KNA Interpharma เปิดให้ทุกคนรับชมได้โดยไม่ต้องล็อกอิน
-                </p>
+
             </div>
         </div>
     </section>
@@ -114,16 +131,23 @@ $siteHeaderActive = 'vdo';
                         $videoUrl = trim((string) ($video['video_url'] ?? ''));
                         $tiktokId = tiktok_video_id($videoUrl);
                         $thumbUrl = video_thumbnail_url($video['thumbnail'] ?? '');
+                        $isDirect = is_direct_video($videoUrl);
                         ?>
                         <article class="tiktok-tile">
-                            <div class="<?php echo $tiktokId !== null ? 'aspect-[9/16]' : 'aspect-video'; ?> bg-slate-100">
-                                <?php if ($tiktokId !== null): ?>
-                                    <blockquote class="tiktok-embed"
-                                        cite="<?php echo h($videoUrl); ?>"
-                                        data-video-id="<?php echo h($tiktokId); ?>"
-                                        style="max-width:100%;min-width:100%;height:100%;margin:0;">
-                                        <section></section>
-                                    </blockquote>
+                            <div class="<?php echo ($tiktokId !== null || $isDirect) ? 'aspect-[9/16]' : 'aspect-video'; ?> bg-slate-100">
+                                <?php if ($isDirect): ?>
+                                    <!-- กรณีเป็นไฟล์วิดีโอตรง จะสามารถ Autoplay และ Loop ได้ -->
+                                    <video src="<?php echo h($videoUrl); ?>" 
+                                           autoplay="autoplay" loop="loop" muted="muted" playsinline="playsinline" 
+                                           class="h-full w-full object-cover">
+                                    </video>
+                                <?php elseif ($tiktokId !== null): ?>
+                                    <iframe
+                                        src="https://www.tiktok.com/player/v1/<?php echo h($tiktokId); ?>?music_info=0&description=0&rel=0"
+                                        title="<?php echo h($video['title'] ?? 'TikTok video'); ?>"
+                                        allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
+                                        allowfullscreen
+                                        loading="lazy"></iframe>
                                 <?php elseif ($thumbUrl !== ''): ?>
                                     <img src="<?php echo h($thumbUrl); ?>"
                                          alt="<?php echo h($video['title'] ?? 'TikTok'); ?>"
@@ -134,9 +158,10 @@ $siteHeaderActive = 'vdo';
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            <?php if (!empty($video['title'])): ?>
+                            <?php $videoTitle = trim((string) ($video['title'] ?? '')); ?>
+                            <?php if ($videoTitle !== '' && !preg_match('#^https?://#i', $videoTitle)): ?>
                                 <div class="border-t border-slate-100 px-4 py-3">
-                                    <p class="text-sm font-semibold text-slate-800"><?php echo h($video['title']); ?></p>
+                                    <p class="text-sm font-semibold text-slate-800 line-clamp-2"><?php echo h($videoTitle); ?></p>
                                 </div>
                             <?php endif; ?>
                         </article>
@@ -167,8 +192,5 @@ $siteHeaderActive = 'vdo';
     </section>
 
     <?php require_once __DIR__ . '/partials/site-footer.php'; ?>
-    <?php if ($hasTikTokEmbeds): ?>
-        <script async src="https://www.tiktok.com/embed.js"></script>
-    <?php endif; ?>
 </body>
 </html>

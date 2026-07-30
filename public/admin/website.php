@@ -35,9 +35,10 @@ $item = [
 
 $table = $tabs[$tab]['table'];
 
-if ($db_ready && isset($_GET['delete'])) {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') === 'delete') {
     try {
-        $id = (int) $_GET['delete'];
+        require_valid_csrf();
+        $id = (int) ($_POST['id'] ?? 0);
         $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch();
@@ -45,10 +46,7 @@ if ($db_ready && isset($_GET['delete'])) {
             $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$id]);
             foreach (['image_path', 'desktop_image', 'mobile_image'] as $col) {
                 if (!empty($row[$col])) {
-                    $file = $uploadDir . '/' . $row[$col];
-                    if (is_file($file)) {
-                        unlink($file);
-                    }
+                    delete_uploaded_file($row[$col], $uploadDir, 'website');
                 }
             }
         }
@@ -59,8 +57,9 @@ if ($db_ready && isset($_GET['delete'])) {
     }
 }
 
-if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 'save') !== 'delete') {
     try {
+        require_valid_csrf();
         $id = (int) ($_POST['id'] ?? 0);
         $title = trim($_POST['title'] ?? '');
         $sort_order = (int) ($_POST['sort_order'] ?? 0);
@@ -169,9 +168,9 @@ require_once __DIR__ . '/partials/header.php';
         <div class="card" style="padding:0; overflow:hidden;">
             <div style="position:relative;">
                 <?php if ($tab === 'slides'): ?>
-                    <img src="/uploads/website/<?php echo h($row['desktop_image'] ?? ''); ?>" alt="" style="width:100%; height:190px; object-fit:cover; background:#eef2f7;">
+                    <img src="<?php echo h(upload_url((string)($row['desktop_image'] ?? ''), 'website')); ?>" alt="" style="width:100%; height:190px; object-fit:cover; background:#eef2f7;">
                 <?php else: ?>
-                    <img src="/uploads/website/<?php echo h($row['image_path'] ?? ''); ?>" alt="" style="width:100%; height:190px; object-fit:cover; background:#eef2f7;">
+                    <img src="<?php echo h(upload_url((string)($row['image_path'] ?? ''), 'website')); ?>" alt="" style="width:100%; height:190px; object-fit:cover; background:#eef2f7;">
                 <?php endif; ?>
                 <span style="position:absolute; top:10px; left:10px;" class="chip">#<?php echo (int) ($row['sort_order'] ?? 0); ?></span>
                 <span style="position:absolute; top:10px; right:10px;" class="status <?php echo (int) ($row['is_active'] ?? 0) === 1 ? 'status--on' : 'status--off'; ?>"><?php echo (int) ($row['is_active'] ?? 0) === 1 ? 'ใช้งาน' : 'ซ่อน'; ?></span>
@@ -180,7 +179,12 @@ require_once __DIR__ . '/partials/header.php';
                 <div style="font-weight:700; margin-bottom:10px;"><?php echo h(($row['title'] ?? '') !== '' ? $row['title'] : 'ไม่มีชื่อ'); ?></div>
                 <div class="actions">
                     <a class="btn" href="/admin/website.php?tab=<?php echo h($tab); ?>&edit=<?php echo (int) ($row['id'] ?? 0); ?>"><i class="fa-solid fa-pen-to-square"></i>แก้ไข</a>
-                    <a class="btn btn--danger" href="/admin/website.php?tab=<?php echo h($tab); ?>&delete=<?php echo (int) ($row['id'] ?? 0); ?>" onclick="return confirm('ลบรายการนี้?');"><i class="fa-solid fa-trash"></i>ลบ</a>
+                    <form method="post" onsubmit="return confirm('ลบรายการนี้?');">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?php echo (int) ($row['id'] ?? 0); ?>">
+                        <button class="btn btn--danger" type="submit"><i class="fa-solid fa-trash"></i>ลบ</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -198,6 +202,8 @@ require_once __DIR__ . '/partials/header.php';
         </div>
 
         <form method="post" enctype="multipart/form-data">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?php echo (int) ($item['id'] ?? 0); ?>">
 
             <div class="row">
@@ -218,18 +224,18 @@ require_once __DIR__ . '/partials/header.php';
                 <div class="row">
                     <div class="field">
                         <label>Desktop Image</label>
-                        <input type="file" name="desktop_image" accept=".jpg,.jpeg,.png,.webp">
+                        <input type="file" name="desktop_image" accept=".jpg,.jpeg,.png,.webp,.svg">
                     </div>
                     <div class="field">
                         <label>Mobile Image</label>
-                        <input type="file" name="mobile_image" accept=".jpg,.jpeg,.png,.webp">
+                        <input type="file" name="mobile_image" accept=".jpg,.jpeg,.png,.webp,.svg">
                     </div>
                 </div>
             <?php else: ?>
                 <input type="hidden" name="current_image" value="<?php echo h($item['image_path'] ?? ''); ?>">
                 <div class="field">
                     <label>รูปภาพ</label>
-                    <input type="file" name="image_path" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="file" name="image_path" accept=".jpg,.jpeg,.png,.webp,.svg">
                 </div>
             <?php endif; ?>
 

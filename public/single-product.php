@@ -5,14 +5,8 @@ require_once __DIR__ . '/../app/helpers.php';
 function product_media_url(?string $value, string $fallback = ''): string
 {
     $value = trim((string) $value);
-    if ($value === '') {
-        return $fallback;
-    }
-
-    if (preg_match('#^https?://#i', $value) || str_starts_with($value, '/')) {
-        return $value;
-    }
-
+    if ($value === '') return $fallback;
+    if (preg_match('#^https?://#i', $value) || str_starts_with($value, '/')) return $value;
     return '/uploads/products/' . rawurlencode($value);
 }
 
@@ -23,8 +17,24 @@ function product_clean_text(?string $value): string
     $text = preg_replace('/\[url[^\]]*\](.*?)\[\/url\]/is', '$1', $text) ?? $text;
     $text = preg_replace('/\[(\/)?[a-z]+[^\]]*\]/i', '', $text) ?? $text;
     $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
-
     return trim($text);
+}
+
+function product_description_paragraphs(string $text): array
+{
+    $clean = product_clean_text($text);
+    if ($clean === '') return [];
+    $blocks = preg_split("/\n{2,}/", $clean) ?: [];
+    $paragraphs = [];
+    foreach ($blocks as $block) {
+        $lines = preg_split("/\n+/", trim($block)) ?: [];
+        $lines = array_values(array_filter(array_map(
+            static fn($l) => trim(preg_replace('/\s+/u', ' ', (string) $l) ?? (string) $l),
+            $lines
+        ), static fn($l) => $l !== ''));
+        if (!empty($lines)) $paragraphs[] = implode(' ', $lines);
+    }
+    return $paragraphs;
 }
 
 function product_description_lines(string $text): array
@@ -32,249 +42,138 @@ function product_description_lines(string $text): array
     $clean = product_clean_text($text);
     $lines = preg_split("/\n+/", $clean) ?: [];
     $result = [];
-
     foreach ($lines as $line) {
         $line = trim(preg_replace('/\s+/u', ' ', $line) ?? $line);
-        if ($line === '') {
-            continue;
-        }
-        $result[] = $line;
+        if ($line !== '') $result[] = $line;
     }
-
     return array_values(array_unique($result));
-}
-
-function product_description_paragraphs(string $text): array
-{
-    $clean = product_clean_text($text);
-    if ($clean === '') {
-        return [];
-    }
-
-    $blocks = preg_split("/\n{2,}/", $clean) ?: [];
-    $paragraphs = [];
-
-    foreach ($blocks as $block) {
-        $lines = preg_split("/\n+/", trim($block)) ?: [];
-        $lines = array_values(array_filter(array_map(
-            static fn ($line) => trim(preg_replace('/\s+/u', ' ', (string) $line) ?? (string) $line),
-            $lines
-        ), static fn ($line) => $line !== ''));
-
-        if (empty($lines)) {
-            continue;
-        }
-
-        $paragraphs[] = implode(' ', $lines);
-    }
-
-    return $paragraphs;
 }
 
 function product_shorten_text(string $text, int $limit = 220): string
 {
     $text = trim($text);
-    if ($text === '') {
-        return '';
-    }
-
-    if (mb_strlen($text) <= $limit) {
-        return $text;
-    }
-
+    if ($text === '') return '';
+    if (mb_strlen($text) <= $limit) return $text;
     return rtrim(mb_substr($text, 0, $limit - 1)) . '…';
 }
 
 function product_summary(array $paragraphs, array $lines, string $name): string
 {
-    foreach ($paragraphs as $paragraph) {
-        $candidate = trim($paragraph);
-        if ($candidate === '' || mb_strtolower($candidate) === mb_strtolower($name)) {
-            continue;
-        }
-
-        return product_shorten_text($candidate, 240);
+    foreach ($paragraphs as $p) {
+        $c = trim($p);
+        if ($c !== '' && mb_strtolower($c) !== mb_strtolower($name))
+            return product_shorten_text($c, 260);
     }
-
-    foreach ($lines as $line) {
-        $candidate = trim($line);
-        if ($candidate === '' || mb_strtolower($candidate) === mb_strtolower($name)) {
-            continue;
-        }
-
-        return product_shorten_text($candidate, 240);
+    foreach ($lines as $l) {
+        $c = trim($l);
+        if ($c !== '' && mb_strtolower($c) !== mb_strtolower($name))
+            return product_shorten_text($c, 260);
     }
-
-    return 'ผลิตภัณฑ์ที่คัดสรรโดย KNA Interpharma สำหรับการนำเสนอในบริบทคลินิกและความงามอย่างมืออาชีพ';
+    return 'ผลิตภัณฑ์คุณภาพพรีเมียมคัดสรรโดย KNA Interpharma';
 }
 
 function product_highlights(array $lines, string $name): array
 {
     $highlights = [];
-
     foreach ($lines as $line) {
-        $candidate = trim($line);
-        if ($candidate === '' || mb_strtolower($candidate) === mb_strtolower($name)) {
-            continue;
-        }
-
-        $length = mb_strlen($candidate);
-        if ($length < 18 || $length > 140) {
-            continue;
-        }
-
-        if (preg_match('/^[A-Z0-9 .,&\-\/]+$/', $candidate)) {
-            continue;
-        }
-
-        $highlights[] = $candidate;
-        if (count($highlights) === 4) {
-            break;
-        }
+        $c = trim($line);
+        $len = mb_strlen($c);
+        if ($c === '' || mb_strtolower($c) === mb_strtolower($name)) continue;
+        if ($len < 15 || $len > 160) continue;
+        if (preg_match('/^[A-Z0-9 .,&\-\/]+$/', $c)) continue;
+        $highlights[] = $c;
+        if (count($highlights) === 5) break;
     }
-
-    if (empty($highlights)) {
-        $highlights = [
-            'ออกแบบเพื่อการใช้งานในบริบทคลินิกและความงามอย่างมืออาชีพ',
-            'นำเสนอจุดเด่นของผลิตภัณฑ์ผ่านภาพลักษณ์ที่สะอาด น่าเชื่อถือ และอ่านง่าย',
-            'เหมาะสำหรับใช้เป็นหน้ารายละเอียดสินค้าที่พาไปสู่การติดต่อหรือการนัดหมายต่อ',
-        ];
-    }
-
     return $highlights;
 }
 
 function product_detect_category(string $name, string $text): string
 {
-    $source = mb_strtolower($name . ' ' . $text);
-
-    if (str_contains($source, 'thread') || str_contains($source, 'pdo') || str_contains($source, 'ไหม')) {
-        return 'Thread Lift';
-    }
-
-    if (str_contains($source, 'pdlla') || str_contains($source, 'biostimulator')) {
-        return 'Biostimulator';
-    }
-
-    if (str_contains($source, 'filler') || str_contains($source, 'ฟิลเลอร์') || str_contains($source, 'hyaluronic') || str_contains($source, 'ha ')) {
-        return 'Dermal Filler';
-    }
-
+    $src = mb_strtolower($name . ' ' . $text);
+    if (str_contains($src, 'thread') || str_contains($src, 'pdo') || str_contains($src, 'ไหม')) return 'Thread Lift';
+    if (str_contains($src, 'pdlla') || str_contains($src, 'biostimulator')) return 'Biostimulator';
+    if (str_contains($src, 'filler') || str_contains($src, 'ฟิลเลอร์') || str_contains($src, 'hyaluronic')) return 'Dermal Filler';
     return 'Clinical Product';
-}
-
-function product_detect_focus(string $text): string
-{
-    $source = mb_strtolower($text);
-
-    if (str_contains($source, 'สะโพก')) {
-        return 'เพิ่มวอลลุ่มและปรับรูปทรง';
-    }
-
-    if (str_contains($source, 'ยกกระชับ') || str_contains($source, 'lifting') || str_contains($source, 'thread')) {
-        return 'ยกกระชับและฟื้นฟูโครงสร้างผิว';
-    }
-
-    if (str_contains($source, 'ชุ่มชื้น') || str_contains($source, 'hydrat')) {
-        return 'เติมความชุ่มชื้นและฟื้นฟูผิว';
-    }
-
-    if (str_contains($source, 'face & body') || str_contains($source, 'ร่างกาย')) {
-        return 'รองรับการฟื้นฟูทั้งใบหน้าและร่างกาย';
-    }
-
-    return 'เน้นผลลัพธ์ที่ดูเป็นธรรมชาติและน่าเชื่อถือ';
 }
 
 function product_detect_origin(string $text): string
 {
-    $source = mb_strtolower($text);
-
-    if (str_contains($source, 'เยอรมนี') || str_contains($source, 'germany')) {
-        return 'เยอรมนี';
-    }
-
-    if (str_contains($source, 'ไต้หวัน') || str_contains($source, 'taiwan')) {
-        return 'ไต้หวัน';
-    }
-
-    if (str_contains($source, 'ไทย') || str_contains($source, 'thailand')) {
-        return 'ประเทศไทย';
-    }
-
-    return 'ข้อมูลประเทศผู้ผลิตเพิ่มเติม';
+    $src = mb_strtolower($text);
+    if (str_contains($src, 'เยอรมนี') || str_contains($src, 'germany')) return 'Germany 🇩🇪';
+    if (str_contains($src, 'ไต้หวัน') || str_contains($src, 'taiwan')) return 'Taiwan 🇹🇼';
+    if (str_contains($src, 'เกาหลี') || str_contains($src, 'korea')) return 'Korea 🇰🇷';
+    return 'Imported';
 }
 
-function product_badges(string $name, string $text): array
+// Per-brand color identity, matched against the KNA product line-up.
+// Falls back to the house purple for any product outside the four core brands.
+function product_brand_theme(string $name, string $text = ''): array
 {
-    $source = mb_strtolower($name . ' ' . $text);
-    $badges = [];
-
-    if (str_contains($source, 'อย.')) {
-        $badges[] = 'มีการกล่าวถึง อย.';
+    $src = mb_strtolower($name . ' ' . $text);
+    if (str_contains($src, 'neofilera')) {
+        return ['primary' => '#C9971F', 'dark' => '#8A6A15', 'soft' => '#FBF3DC'];
     }
-
-    if (str_contains($source, 'เยอรมนี') || str_contains($source, 'germany')) {
-        $badges[] = 'ผลิตภัณฑ์จากเยอรมนี';
+    if (str_contains($src, 'hyabell')) {
+        return ['primary' => '#9C7A2D', 'dark' => '#6B531D', 'soft' => '#F5EEDD'];
     }
-
-    if (str_contains($source, 'ไต้หวัน') || str_contains($source, 'taiwan')) {
-        $badges[] = 'ผลิตภัณฑ์จากไต้หวัน';
+    if (str_contains($src, 'variofill')) {
+        return ['primary' => '#E6007E', 'dark' => '#A30058', 'soft' => '#FDE6F1'];
     }
-
-    if (str_contains($source, 'face & body')) {
-        $badges[] = 'รองรับ FACE & BODY';
+    if (str_contains($src, 'meteora')) {
+        return ['primary' => '#1C74C4', 'dark' => '#123E66', 'soft' => '#EAF3FB'];
     }
-
-    if (str_contains($source, 'ปลอดภัย') || str_contains($source, 'safe') || str_contains($source, 'safety')) {
-        $badges[] = 'เน้นความปลอดภัย';
-    }
-
-    $badges[] = 'เหมาะสำหรับคลินิกและผู้เชี่ยวชาญ';
-
-    return array_slice(array_values(array_unique($badges)), 0, 4);
+    return ['primary' => '#4B4899', 'dark' => '#332F73', 'soft' => '#EFEEFA'];
 }
 
+// ── DB ────────────────────────────────────────────────────────────────────────
 $id = (int) ($_GET['id'] ?? 0);
 $item = null;
 $relatedItems = [];
-$dbError = '';
+$galleryImages = [];
 
 if ($pdo instanceof PDO && $id > 0) {
     try {
         $stmt = $pdo->prepare('SELECT * FROM products WHERE id = ? AND is_active = 1');
         $stmt->execute([$id]);
         $item = $stmt->fetch();
-
         if ($item) {
+            $galleryStmt = $pdo->prepare(
+                'SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC'
+            );
+            $galleryStmt->execute([$id]);
+            foreach ($galleryStmt->fetchAll() as $galleryRow) {
+                $galleryUrl = product_media_url($galleryRow['image'] ?? '');
+                if ($galleryUrl !== '') {
+                    $galleryImages[] = $galleryUrl;
+                }
+            }
+
             $relatedStmt = $pdo->prepare(
                 'SELECT id, name, short_description, hero_image
-                 FROM products
-                 WHERE is_active = 1
-                   AND id <> ?
-                 ORDER BY id DESC
-                 LIMIT 3'
+                 FROM products WHERE is_active = 1 AND id <> ? ORDER BY id DESC LIMIT 3'
             );
             $relatedStmt->execute([$id]);
             $relatedItems = $relatedStmt->fetchAll();
         }
-    } catch (Exception $e) {
-        $dbError = $e->getMessage();
-    }
+    } catch (Exception $e) {}
 }
 
-$name = trim((string) ($item['name'] ?? ''));
-$description = product_clean_text((string) ($item['short_description'] ?? ''));
-$descriptionLines = product_description_lines($description);
-$descriptionParagraphs = product_description_paragraphs($description);
-$summary = product_summary($descriptionParagraphs, $descriptionLines, $name);
-$highlights = product_highlights($descriptionLines, $name);
-$category = product_detect_category($name, $description);
-$focus = product_detect_focus($description);
-$origin = product_detect_origin($description);
-$badges = product_badges($name, $description);
-$heroImage = product_media_url($item['hero_image'] ?? '', '');
-$contentParagraphs = array_slice($descriptionParagraphs, 0, 6);
+$name        = trim((string) ($item['name'] ?? ''));
+$rawDesc     = (string) ($item['short_description'] ?? '');
+$paragraphs  = product_description_paragraphs($rawDesc);
+$lines       = product_description_lines($rawDesc);
+$summary     = product_summary($paragraphs, $lines, $name);
+$highlights  = product_highlights($lines, $name);
+$category    = product_detect_category($name, product_clean_text($rawDesc));
+$origin      = product_detect_origin(product_clean_text($rawDesc));
+$heroImage   = product_media_url($item['hero_image'] ?? '', '');
+$logoImage   = product_media_url($item['logo_image'] ?? '', '');
+$brand       = product_brand_theme($name, product_clean_text($rawDesc));
+
+// All displayable images: hero first, then gallery (deduplicated).
+$allImages = array_values(array_unique(array_filter(
+    array_merge($heroImage !== '' ? [$heroImage] : [], $galleryImages)
+)));
 $siteHeaderActive = 'product';
 ?>
 <!DOCTYPE html>
@@ -287,272 +186,266 @@ $siteHeaderActive = 'product';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --brand: <?php echo $brand['primary']; ?>;
+            --brand-dark: <?php echo $brand['dark']; ?>;
+            --brand-soft: <?php echo $brand['soft']; ?>;
+        }
         body { font-family: 'Kanit', sans-serif; }
-
-        .product-detail-hero {
-            background:
-                radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.5) 18%, rgba(255, 255, 255, 0) 42%),
-                linear-gradient(135deg, rgba(236, 244, 255, 0.98) 0%, rgba(230, 238, 255, 0.96) 42%, rgba(220, 230, 255, 0.94) 100%);
+        .kna-purple { color: var(--brand); }
+        .kna-bg { background: var(--brand); }
+        .kna-border { border-color: var(--brand); }
+        .line-clamp-3 {
+            display: -webkit-box; -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3; overflow: hidden;
         }
-
-        .product-detail-hero::after {
+        .product-img-wrap {
+            background: linear-gradient(135deg, var(--brand-soft) 0%, #ffffff 75%);
+        }
+        .highlight-dot::before {
             content: '';
-            position: absolute;
-            right: -120px;
-            top: -80px;
-            width: 360px;
-            height: 360px;
-            border-radius: 999px;
-            background: radial-gradient(circle, rgba(79, 70, 229, 0.18) 0%, rgba(79, 70, 229, 0.05) 45%, rgba(79, 70, 229, 0) 72%);
-            pointer-events: none;
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--brand);
+            margin-right: 10px;
+            flex-shrink: 0;
+            margin-top: 8px;
         }
-
-        .clinical-grid {
-            background-image:
-                linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
-            background-size: 36px 36px;
-            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.2) 100%);
-            -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.2) 100%);
+        .brand-thumb-active { border-color: var(--brand) !important; }
+        .brand-chip { background: var(--brand-soft); color: var(--brand-dark); }
+        .brand-solid-btn { background: var(--brand); color: #fff; }
+        .brand-solid-btn:hover { filter: brightness(0.93); }
+        .brand-outline-btn { border-color: var(--brand); color: var(--brand); background: #fff; }
+        .brand-outline-btn:hover { background: var(--brand-soft); }
+        .brand-icon-bubble { background: #fff; color: var(--brand); }
+        .brand-highlight-card { background: var(--brand-soft); }
+        .brand-banner {
+            background: linear-gradient(135deg, var(--brand-dark) 0%, #111827 100%);
         }
-
-        .product-related__description {
-            display: -webkit-box;
-            overflow: hidden;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-        }
+        .brand-top-bar { background: var(--brand); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-gray-50 text-gray-800">
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
-    <main class="px-4 pb-16 md:px-6 lg:px-8 lg:pb-20">
-        <?php if (!$item): ?>
-            <section class="mx-auto max-w-4xl py-14">
-                <div class="rounded-[32px] border border-slate-200 bg-white px-8 py-16 text-center shadow-sm">
-                    <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                        <i class="fa-solid fa-box-open text-3xl"></i>
-                    </div>
-                    <h1 class="mt-6 text-3xl font-bold text-slate-900">ไม่พบสินค้าที่ต้องการ</h1>
-                    <p class="mx-auto mt-4 max-w-xl text-slate-600">
-                        รายการสินค้านี้อาจถูกปิดการแสดงผลหรือไม่มีอยู่ในระบบแล้ว
-                    </p>
-                    <div class="mt-8 flex flex-wrap justify-center gap-4">
-                        <a href="/product.php" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-700">
-                            <i class="fa-solid fa-arrow-left"></i>
-                            กลับไปหน้าผลิตภัณฑ์
-                        </a>
-                    </div>
-                </div>
-            </section>
-        <?php else: ?>
-            <section class="mx-auto max-w-7xl pt-8">
-                <div class="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                    <a href="/index.php" class="hover:text-indigo-600">หน้าแรก</a>
-                    <span>/</span>
-                    <a href="/product.php" class="hover:text-indigo-600">ผลิตภัณฑ์</a>
-                    <span>/</span>
-                    <span class="text-slate-700"><?php echo h($name); ?></span>
-                </div>
+    <?php if (!$item): ?>
+    <!-- Not Found -->
+    <div class="flex flex-col items-center justify-center py-32 px-4 text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-6 text-gray-400">
+            <i class="fa-solid fa-box-open text-3xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-3">ไม่พบสินค้าที่ต้องการ</h1>
+        <p class="text-gray-500 mb-8">รายการสินค้านี้อาจถูกปิดการแสดงผลหรือไม่มีอยู่ในระบบ</p>
+        <a href="/product.php"
+           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold kna-bg hover:opacity-90 transition">
+            <i class="fa-solid fa-arrow-left"></i> กลับไปหน้าผลิตภัณฑ์
+        </a>
+    </div>
 
-                <?php if ($dbError !== ''): ?>
-                    <div class="mb-6 rounded-2xl border border-yellow-300 bg-yellow-50 px-5 py-4 text-yellow-900">
-                        ไม่สามารถโหลดข้อมูลสินค้าได้: <?php echo h($dbError); ?>
-                    </div>
-                <?php endif; ?>
+    <?php else: ?>
 
-                <section class="product-detail-hero relative isolate overflow-hidden rounded-[36px] border border-slate-200/70">
-                    <div class="clinical-grid absolute inset-y-0 right-0 hidden w-[38%] opacity-60 lg:block"></div>
+    <div class="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
 
-                    <div class="relative mx-auto grid max-w-7xl gap-10 px-6 py-10 md:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-14 lg:py-14">
-                        <div class="relative z-10">
-                            <div class="flex flex-wrap gap-2">
-                                <?php foreach ($badges as $badge): ?>
-                                    <span class="inline-flex items-center rounded-full bg-white/85 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100">
-                                        <?php echo h($badge); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
+            <a href="/index.php" class="hover:text-gray-600 transition">หน้าแรก</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <a href="/product.php" class="hover:text-gray-600 transition">ผลิตภัณฑ์</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <span class="text-gray-700 font-medium"><?php echo h($name); ?></span>
+        </nav>
 
-                            <h1 class="mt-6 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl lg:text-6xl">
-                                <?php echo h($name); ?>
-                            </h1>
-                            <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-600 md:text-xl">
-                                <?php echo h($summary); ?>
-                            </p>
+        <!-- Hero: Image + Info -->
+        <div class="grid lg:grid-cols-2 gap-10 mb-12">
 
-                            <div class="mt-8 grid gap-4 sm:grid-cols-3">
-                                <div class="rounded-3xl bg-white/90 px-5 py-4 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-sm">
-                                    <div class="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-600">ประเภท</div>
-                                    <div class="mt-2 text-lg font-bold text-slate-900"><?php echo h($category); ?></div>
-                                </div>
-                                <div class="rounded-3xl bg-white/90 px-5 py-4 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-sm">
-                                    <div class="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-600">จุดโฟกัส</div>
-                                    <div class="mt-2 text-lg font-bold text-slate-900"><?php echo h($focus); ?></div>
-                                </div>
-                                <div class="rounded-3xl bg-white/90 px-5 py-4 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-sm">
-                                    <div class="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-600">แหล่งอ้างอิง</div>
-                                    <div class="mt-2 text-lg font-bold text-slate-900"><?php echo h($origin); ?></div>
-                                </div>
-                            </div>
-
-                            <div class="mt-8 flex flex-wrap gap-4">
-                                <a href="/contact.php" class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-700 to-violet-600 px-6 py-3 font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:translate-y-[-1px] hover:shadow-xl">
-                                    สอบถามข้อมูลสินค้า
-                                    <i class="fa-solid fa-arrow-right"></i>
-                                </a>
-                                <a href="/searchpage.php" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700">
-                                    ค้นหาคลินิก
-                                    <i class="fa-solid fa-location-dot"></i>
-                                </a>
-                            </div>
+            <!-- Image + Gallery -->
+            <div>
+                <div class="relative product-img-wrap rounded-2xl overflow-hidden flex items-center justify-center aspect-square max-h-[500px] shadow-sm">
+                    <?php if ($logoImage !== ''): ?>
+                        <div class="absolute top-4 left-4 bg-white/95 backdrop-blur rounded-xl px-4 py-2.5 shadow-md">
+                            <img src="<?php echo h($logoImage); ?>" alt="<?php echo h($name); ?> logo"
+                                 class="w-auto h-auto object-contain" style="max-width:7rem; max-height:3.25rem;">
                         </div>
-
-                        <div class="relative z-10">
-                            <div class="overflow-hidden rounded-[34px] bg-white/80 p-4 shadow-[0_24px_60px_rgba(79,70,229,0.14)] ring-1 ring-white/80 backdrop-blur-sm">
-                                <?php if ($heroImage !== ''): ?>
-                                    <img src="<?php echo h($heroImage); ?>" alt="<?php echo h($name); ?>" class="h-[320px] w-full rounded-[26px] object-cover md:h-[420px]">
-                                <?php else: ?>
-                                    <div class="flex h-[320px] items-center justify-center rounded-[26px] bg-gradient-to-br from-indigo-100 via-white to-sky-100 text-indigo-400 md:h-[420px]">
-                                        <i class="fa-solid fa-box-open text-8xl"></i>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                    <?php endif; ?>
+                    <?php if (!empty($allImages)): ?>
+                        <img id="mainProductImage" src="<?php echo h($allImages[0]); ?>" alt="<?php echo h($name); ?>"
+                             class="w-full h-full object-contain p-6">
+                    <?php else: ?>
+                        <div class="flex flex-col items-center justify-center text-gray-300 py-20">
+                            <i class="fa-solid fa-box-open text-8xl mb-4"></i>
+                            <span class="text-sm">ยังไม่มีรูปภาพ</span>
                         </div>
-                    </div>
-                </section>
-            </section>
-
-            <section class="mx-auto max-w-7xl pt-10">
-                <div class="mb-8">
-                    <p class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Highlights</p>
-                    <h2 class="mt-2 text-3xl font-bold text-slate-900 md:text-4xl">จุดเด่นที่ควรรู้ก่อนตัดสินใจ</h2>
+                    <?php endif; ?>
                 </div>
 
-                <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                    <?php foreach ($highlights as $index => $highlight): ?>
-                        <div class="rounded-[28px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                                <i class="fa-solid fa-star text-lg"></i>
-                            </div>
-                            <div class="mt-5 text-lg font-semibold leading-8 text-slate-800">
-                                <?php echo h($highlight); ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </section>
-
-            <section class="mx-auto grid max-w-7xl gap-8 pt-12 lg:grid-cols-[1.2fr_0.8fr]">
-                <div class="rounded-[32px] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 md:p-10">
-                    <p class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Clinical Overview</p>
-                    <h2 class="mt-2 text-3xl font-bold text-slate-900">รายละเอียดผลิตภัณฑ์</h2>
-
-                    <div class="mt-8 space-y-6 text-lg leading-8 text-slate-600">
-                        <?php if (!empty($contentParagraphs)): ?>
-                            <?php foreach ($contentParagraphs as $paragraph): ?>
-                                <p><?php echo h($paragraph); ?></p>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p>ยังไม่มีรายละเอียดเชิงลึกของผลิตภัณฑ์นี้ในระบบ</p>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="rounded-[32px] bg-slate-900 p-7 text-white shadow-[0_18px_46px_rgba(15,23,42,0.16)] md:p-8">
-                        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200">Why It Feels Premium</p>
-                        <h2 class="mt-2 text-3xl font-bold">เหตุผลที่หน้านี้ควรขายได้</h2>
-                        <div class="mt-6 space-y-4 text-base leading-7 text-slate-200">
-                            <p>โครงหน้านี้เน้นการสร้างความน่าเชื่อถือผ่านภาพลักษณ์สะอาด ข้อมูลชัด และจุดขายที่อ่านง่ายตั้งแต่ช่วงแรกของหน้า</p>
-                            <p>การแบ่งข้อมูลเป็น hero, highlights, รายละเอียด และ CTA ช่วยให้ผู้ชมเข้าใจทั้งตัวสินค้าและทางไปต่อได้เร็วขึ้น</p>
-                        </div>
-                    </div>
-
-                    <div class="rounded-[32px] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 md:p-8">
-                        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Trust Layer</p>
-                        <h2 class="mt-2 text-3xl font-bold text-slate-900">ชั้นข้อมูลที่ช่วยเพิ่มความเชื่อถือ</h2>
-                        <ul class="mt-6 space-y-4 text-base leading-7 text-slate-600">
-                            <li class="flex gap-3">
-                                <i class="fa-solid fa-circle-check mt-1 text-indigo-600"></i>
-                                <span>ใช้ภาพ packshot ขนาดใหญ่เพื่อให้สินค้าเป็นพระเอกของหน้าอย่างชัดเจน</span>
-                            </li>
-                            <li class="flex gap-3">
-                                <i class="fa-solid fa-circle-check mt-1 text-indigo-600"></i>
-                                <span>ดึงคีย์เวิร์ดจากข้อมูลสินค้าเพื่อแสดงประเภท จุดโฟกัส และบริบทการใช้งานแบบอ่านง่าย</span>
-                            </li>
-                            <li class="flex gap-3">
-                                <i class="fa-solid fa-circle-check mt-1 text-indigo-600"></i>
-                                <span>เพิ่ม CTA ที่เชื่อมไปยังการสอบถามข้อมูลและการค้นหาคลินิกต่อได้ทันที</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="rounded-[32px] bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 p-7 text-white shadow-[0_18px_46px_rgba(79,70,229,0.24)] md:p-8">
-                        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-100">Next Step</p>
-                        <h2 class="mt-2 text-3xl font-bold">พร้อมคุยต่อในเชิงคลินิกหรือการใช้งานจริง</h2>
-                        <p class="mt-5 text-base leading-7 text-indigo-50">
-                            หากต้องการข้อมูลเชิงลึกเพิ่มเติมเกี่ยวกับสินค้า การใช้งาน หรือการประยุกต์ในคลินิก สามารถติดต่อทีมงานเพื่อรับข้อมูลเพิ่มเติมได้
-                        </p>
-                        <div class="mt-6 flex flex-wrap gap-3">
-                            <a href="/contact.php" class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 font-semibold text-indigo-700 transition hover:bg-indigo-50">
-                                ติดต่อทีมงาน
-                                <i class="fa-solid fa-headset"></i>
-                            </a>
-                            <a href="/searchpage.php" class="inline-flex items-center gap-2 rounded-2xl border border-white/30 px-5 py-3 font-semibold text-white transition hover:bg-white/10">
-                                ดูคลินิกที่เกี่ยวข้อง
-                                <i class="fa-solid fa-location-dot"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <?php if (!empty($relatedItems)): ?>
-                <section class="mx-auto max-w-7xl pt-12">
-                    <div class="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                        <div>
-                            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">More Products</p>
-                            <h2 class="mt-2 text-3xl font-bold text-slate-900 md:text-4xl">ผลิตภัณฑ์อื่นที่น่าสนใจ</h2>
-                        </div>
-                        <a href="/product.php" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">ดูสินค้าทั้งหมด</a>
-                    </div>
-
-                    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                        <?php foreach ($relatedItems as $related): ?>
-                            <?php
-                            $relatedImage = product_media_url($related['hero_image'] ?? '', '');
-                            $relatedDescription = product_shorten_text(product_clean_text((string) ($related['short_description'] ?? '')), 150);
-                            ?>
-                            <article class="group overflow-hidden rounded-[28px] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70">
-                                <div class="aspect-[16/11] overflow-hidden bg-slate-100">
-                                    <?php if ($relatedImage !== ''): ?>
-                                        <img src="<?php echo h($relatedImage); ?>" alt="<?php echo h($related['name'] ?? ''); ?>" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
-                                    <?php else: ?>
-                                        <div class="flex h-full w-full items-center justify-center text-slate-400">
-                                            <i class="fa-solid fa-box-open text-6xl"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="p-6">
-                                    <h3 class="text-2xl font-bold text-slate-900"><?php echo h($related['name'] ?? ''); ?></h3>
-                                    <p class="product-related__description mt-3 text-base leading-7 text-slate-600">
-                                        <?php echo h($relatedDescription !== '' ? $relatedDescription : 'ดูรายละเอียดเพิ่มเติมของผลิตภัณฑ์นี้ได้ในหน้าสินค้า'); ?>
-                                    </p>
-                                    <a href="/single-product.php?id=<?php echo (int) ($related['id'] ?? 0); ?>" class="mt-5 inline-flex items-center gap-2 font-semibold text-indigo-600 transition hover:text-indigo-700">
-                                        ดูรายละเอียด
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </a>
-                                </div>
-                            </article>
+                <?php if (count($allImages) > 1): ?>
+                    <div class="grid grid-cols-5 gap-3 mt-4">
+                        <?php foreach ($allImages as $idx => $imageUrl): ?>
+                            <button type="button"
+                                    class="product-thumb product-img-wrap rounded-xl overflow-hidden aspect-square border-2 transition <?php echo $idx === 0 ? 'brand-thumb-active' : 'border-transparent hover:border-gray-300'; ?>"
+                                    onclick="swapProductImage(this, '<?php echo h($imageUrl); ?>')">
+                                <img src="<?php echo h($imageUrl); ?>" alt="<?php echo h($name); ?> รูปที่ <?php echo $idx + 1; ?>"
+                                     class="w-full h-full object-contain p-1.5">
+                            </button>
                         <?php endforeach; ?>
                     </div>
-                </section>
-            <?php endif; ?>
+                    <script>
+                        function swapProductImage(btn, src) {
+                            document.getElementById('mainProductImage').src = src;
+                            document.querySelectorAll('.product-thumb').forEach(function (el) {
+                                el.classList.remove('brand-thumb-active');
+                                el.classList.add('border-transparent');
+                            });
+                            btn.classList.remove('border-transparent');
+                            btn.classList.add('brand-thumb-active');
+                        }
+                    </script>
+                <?php endif; ?>
+            </div>
+
+            <!-- Product Info -->
+            <div class="flex flex-col justify-center">
+                <!-- Category Badge -->
+                <div class="mb-4">
+                    <span class="inline-block px-3 py-1 rounded-full text-sm font-semibold brand-chip">
+                        <?php echo h($category); ?>
+                    </span>
+                </div>
+
+                <h1 class="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                    <?php echo h($name); ?>
+                </h1>
+
+                <p class="text-gray-600 text-lg leading-relaxed mb-6">
+                    <?php echo h($summary); ?>
+                </p>
+
+                <!-- Meta Tags -->
+                <div class="flex flex-wrap gap-3 mb-8">
+                    <div class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm brand-chip">
+                        <i class="fa-solid fa-globe"></i>
+                        <span><?php echo h($origin); ?></span>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm brand-chip">
+                        <i class="fa-solid fa-tag"></i>
+                        <span><?php echo h($category); ?></span>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm brand-chip">
+                        <i class="fa-solid fa-shield-heart"></i>
+                        <span>สำหรับผู้เชี่ยวชาญ</span>
+                    </div>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="flex flex-wrap gap-3">
+                    <a href="/contact.php"
+                       class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold brand-solid-btn transition shadow-md">
+                        <i class="fa-solid fa-envelope"></i>
+                        สอบถามข้อมูลสินค้า
+                    </a>
+                    <a href="/searchpage.php"
+                       class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold border-2 brand-outline-btn transition">
+                        <i class="fa-solid fa-location-dot"></i>
+                        ค้นหาคลินิก
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Highlights -->
+        <?php if (!empty($highlights)): ?>
+        <div class="bg-white rounded-2xl border border-gray-200 p-7 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <span class="w-1 h-6 rounded-full kna-bg inline-block"></span>
+                จุดเด่นของผลิตภัณฑ์
+            </h2>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <?php foreach ($highlights as $hl): ?>
+                    <div class="flex items-start gap-3 rounded-xl p-4 brand-highlight-card">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full brand-icon-bubble shrink-0">
+                            <i class="fa-solid fa-check text-sm"></i>
+                        </span>
+                        <span class="text-gray-700 text-sm leading-relaxed pt-1"><?php echo h($hl); ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
         <?php endif; ?>
-    </main>
+
+        <!-- Full Description -->
+        <?php if (!empty($paragraphs)): ?>
+        <div class="bg-white rounded-2xl border border-gray-200 p-7 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <span class="w-1 h-6 rounded-full kna-bg inline-block"></span>
+                รายละเอียดผลิตภัณฑ์
+            </h2>
+            <div class="space-y-4 text-gray-600 leading-8">
+                <?php foreach (array_slice($paragraphs, 0, 8) as $i => $p): ?>
+                    <p class="<?php echo $i === 0 ? 'text-base sm:text-lg font-medium text-gray-800' : ''; ?>"><?php echo h($p); ?></p>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- CTA Banner -->
+        <div class="rounded-2xl p-8 mb-12 text-white flex flex-col sm:flex-row items-center justify-between gap-6 brand-banner">
+            <div>
+                <h3 class="text-2xl font-bold mb-1">ต้องการข้อมูลเพิ่มเติม?</h3>
+                <p class="text-white/80">ทีมงาน KNA Interpharma พร้อมให้คำปรึกษาโดยตรง</p>
+            </div>
+            <div class="flex flex-wrap gap-3 shrink-0">
+                <a href="/contact.php"
+                   class="inline-flex items-center gap-2 bg-white px-5 py-3 rounded-xl font-semibold kna-purple hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-headset"></i> ติดต่อเรา
+                </a>
+                <a href="tel:056200890"
+                   class="inline-flex items-center gap-2 bg-white/10 border border-white/30 px-5 py-3 rounded-xl font-semibold text-white hover:bg-white/20 transition">
+                    <i class="fa-solid fa-phone"></i> 056-200890
+                </a>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        <?php if (!empty($relatedItems)): ?>
+        <div>
+            <div class="flex items-end justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">ผลิตภัณฑ์อื่นที่น่าสนใจ</h2>
+                <a href="/product.php" class="text-sm font-semibold kna-purple hover:underline">ดูทั้งหมด →</a>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php foreach ($relatedItems as $rel): ?>
+                <?php
+                $relImg   = product_media_url($rel['hero_image'] ?? '', '');
+                $relDesc  = product_shorten_text(product_clean_text((string) ($rel['short_description'] ?? '')), 100);
+                $relTheme = product_brand_theme((string) ($rel['name'] ?? ''), product_clean_text((string) ($rel['short_description'] ?? '')));
+                ?>
+                <a href="/single-product.php?id=<?php echo (int) ($rel['id'] ?? 0); ?>"
+                   class="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+                    <div class="h-1" style="background:<?php echo h($relTheme['primary']); ?>"></div>
+                    <div class="h-48 flex items-center justify-center overflow-hidden" style="background:linear-gradient(135deg, <?php echo h($relTheme['soft']); ?> 0%, #ffffff 75%);">
+                        <?php if ($relImg !== ''): ?>
+                            <img src="<?php echo h($relImg); ?>" alt="<?php echo h($rel['name'] ?? ''); ?>"
+                                 class="w-full h-full object-contain p-4 group-hover:scale-105 transition duration-300">
+                        <?php else: ?>
+                            <i class="fa-solid fa-box-open text-4xl text-gray-300"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="font-bold text-gray-900 mb-2"><?php echo h($rel['name'] ?? ''); ?></h3>
+                        <p class="text-sm text-gray-500 line-clamp-3"><?php echo h($relDesc !== '' ? $relDesc : 'ดูรายละเอียดเพิ่มเติม'); ?></p>
+                        <span class="inline-flex items-center gap-1 mt-3 text-sm font-semibold group-hover:underline" style="color:<?php echo h($relTheme['primary']); ?>">
+                            ดูรายละเอียด <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </span>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+    </div>
+    <?php endif; ?>
 
     <?php require_once __DIR__ . '/partials/site-footer.php'; ?>
 </body>

@@ -9,20 +9,22 @@ $db_ready = $pdo instanceof PDO;
 $db_error = '';
 
 $q = trim($_GET['q'] ?? '');
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 20;
+$total = 0;
+$totalPages = 1;
 
-if ($db_ready && isset($_GET['delete'])) {
+if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $id = (int) $_GET['delete'];
+        require_valid_csrf();
+        $id = (int) ($_POST['id'] ?? 0);
         $stmt = $pdo->prepare('SELECT photo FROM doctors WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         if ($row) {
             $pdo->prepare('DELETE FROM doctors WHERE id = ?')->execute([$id]);
             if (!empty($row['photo'])) {
-                $file = __DIR__ . '/../uploads/doctors/' . $row['photo'];
-                if (is_file($file)) {
-                    unlink($file);
-                }
+                delete_uploaded_file($row['photo'], __DIR__ . '/../uploads/doctors', 'doctors');
             }
         }
     } catch (Exception $e) {
@@ -43,7 +45,13 @@ if ($db_ready) {
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
         }
-        $sql .= ' ORDER BY id DESC';
+        $countSql = str_replace('SELECT *', 'SELECT COUNT(*)', $sql);
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $totalPages);
+        $sql .= ' ORDER BY id DESC LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage);
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
@@ -87,7 +95,7 @@ require_once __DIR__ . '/partials/header.php';
                 <tr>
                     <td>
                         <?php if (!empty($row['photo'])): ?>
-                            <img src="/uploads/doctors/<?php echo h($row['photo']); ?>" alt="" style="width:46px; height:46px; border-radius:50%; object-fit:cover;">
+                            <img src="<?php echo h(upload_url($row['photo'], 'doctors')); ?>" alt="" style="width:46px; height:46px; border-radius:50%; object-fit:cover;">
                         <?php else: ?>
                             <div style="width:46px; height:46px; border-radius:50%; background:#e5e7eb;"></div>
                         <?php endif; ?>
@@ -102,7 +110,11 @@ require_once __DIR__ . '/partials/header.php';
                     <td>
                         <div class="actions">
                             <a class="iconBtn" href="/admin/add-doctors-directory.php?id=<?php echo (int) $row['id']; ?>"><i class="fa-solid fa-pen"></i></a>
-                            <a class="iconBtn iconBtn--danger" href="/admin/doctors.php?delete=<?php echo (int) $row['id']; ?>" onclick="return confirm('ลบแพทย์รายการนี้?');"><i class="fa-solid fa-trash"></i></a>
+                            <form method="post" onsubmit="return confirm('ลบแพทย์รายการนี้?');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                                <button class="iconBtn iconBtn--danger" type="submit"><i class="fa-solid fa-trash"></i></button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -113,5 +125,13 @@ require_once __DIR__ . '/partials/header.php';
         </tbody>
     </table>
 </div>
+
+<?php if ($totalPages > 1): ?>
+    <nav class="actions" style="justify-content:center; margin-top:16px;">
+        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <a class="btn <?php echo $p === $page ? 'btn--primary' : ''; ?>" href="/admin/doctors.php?q=<?php echo urlencode($q); ?>&page=<?php echo $p; ?>"><?php echo $p; ?></a>
+        <?php endfor; ?>
+    </nav>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/partials/footer.php'; ?>

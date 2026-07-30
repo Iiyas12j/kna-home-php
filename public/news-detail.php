@@ -33,7 +33,7 @@ $siteHeaderActive = 'news';
         <?php else: ?>
             <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow p-6">
                 <?php if (!empty($item['hero_image'])): ?>
-                    <img src="/uploads/news/<?php echo h($item['hero_image']); ?>" alt="" class="w-full rounded-xl mb-6">
+                    <img src="<?php echo h(upload_url($item['hero_image'], 'news')); ?>" alt="" class="w-full rounded-xl mb-6">
                 <?php endif; ?>
                 <div class="text-sm text-blue-600 font-semibold uppercase"><?php echo h($item['category']); ?></div>
                 <h1 class="text-3xl font-bold mt-2"><?php echo h($item['title']); ?></h1>
