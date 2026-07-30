@@ -4,5 +4,5 @@ WORKDIR /app
 
 COPY . .
 
-CMD sh -c "php -S 0.0.0.0:${PORT} -t public"
+CMD sh -c "php -d output_buffering=4096 -S 0.0.0.0:${PORT} -t public"
 
