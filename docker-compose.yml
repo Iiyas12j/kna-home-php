@@ -15,17 +15,17 @@ services:
         condition: service_healthy
 
   mysql:
-    image: mysql:8.0
+    image: mariadb:10.11
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASS}
-      MYSQL_DATABASE: ${DB_NAME}
+      MARIADB_ROOT_PASSWORD: ${DB_PASS}
+      MARIADB_DATABASE: ${DB_NAME}
     volumes:
       - db_data:/var/lib/mysql
       - ./app/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./app/schema_migration.sql:/docker-entrypoint-initdb.d/02-migration.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
