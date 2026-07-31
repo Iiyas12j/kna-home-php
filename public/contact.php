@@ -74,14 +74,8 @@ $siteHeaderActive = 'contact';
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo h($page_title); ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/partials/site-head.php'; ?>
     <style>
-        body { font-family: 'Kanit', sans-serif; }
         .branch-card { transition: box-shadow .2s; }
         .branch-card:hover { box-shadow: 0 8px 32px rgba(75,72,153,0.13); }
     </style>

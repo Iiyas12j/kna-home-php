@@ -106,18 +106,15 @@ $detailBody   = vd_clean($video['detail_content'] ?? '');
 $bodyText     = $detailBody !== '' ? $detailBody : ($description !== '' ? $description : '');
 
 $siteHeaderActive = 'vdo';
+$page_title = ($video && empty($video['_access_denied']))
+    ? ($video['title'] ?? 'วิดีโอ') . ' - KNA Interpharma'
+    : 'วิดีโอ - KNA Interpharma';
 ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $video && empty($video['_access_denied']) ? h(($video['title'] ?? 'วิดีโอ') . ' — KNA Interpharma') : 'วิดีโอ — KNA Interpharma'; ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/partials/site-head.php'; ?>
     <style>
-        body { font-family: 'Kanit', sans-serif; }
         .line-clamp-2 {
             display: -webkit-box;
             overflow: hidden;

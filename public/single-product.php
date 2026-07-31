@@ -175,23 +175,24 @@ $allImages = array_values(array_unique(array_filter(
     array_merge($heroImage !== '' ? [$heroImage] : [], $galleryImages)
 )));
 $siteHeaderActive = 'product';
+$page_title = $item ? ($name . ' - KNA Interpharma') : 'ไม่พบสินค้า - KNA Interpharma';
+if ($item && $summary !== '') {
+    $page_description = mb_substr($summary, 0, 160);
+}
+if ($item && $heroImage !== '') {
+    $page_og_image = $heroImage;
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $item ? h($name . ' - KNA Interpharma') : 'ไม่พบสินค้า - KNA Interpharma'; ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/partials/site-head.php'; ?>
     <style>
         :root {
             --brand: <?php echo $brand['primary']; ?>;
             --brand-dark: <?php echo $brand['dark']; ?>;
             --brand-soft: <?php echo $brand['soft']; ?>;
         }
-        body { font-family: 'Kanit', sans-serif; }
         .kna-purple { color: var(--brand); }
         .kna-bg { background: var(--brand); }
         .kna-border { border-color: var(--brand); }

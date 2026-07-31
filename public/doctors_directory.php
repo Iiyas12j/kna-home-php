@@ -40,15 +40,8 @@ $siteHeaderActive = 'trainer';
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ทำเนียบแพทย์ - KNA Interpharma</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <?php $page_title = 'ทำเนียบแพทย์ - KNA Interpharma'; require_once __DIR__ . '/partials/site-head.php'; ?>
     <style>
-        body { font-family: 'Kanit', sans-serif; }
-
         .hero-doctor {
             position: relative;
             background-color: #1e293b;

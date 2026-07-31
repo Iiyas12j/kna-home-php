@@ -9,3 +9,7 @@ Thumbs.db
 .vscode/
 .idea/
 deploy/seed-data.sql
+deploy/.env.production
+deploy/*.env
+deploy/*.env.*
+!deploy/*.env.*.example

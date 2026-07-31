@@ -80,18 +80,13 @@ $search = '';
 $province = '';
 $selectedProductIds = [];
 $siteHeaderActive = 'home';
+$page_title = 'KNA Interpharma - Pharmacy & Healthcare';
 ?>
 <!doctype html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KNA Interpharma - Pharmacy & Healthcare</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/partials/site-head.php'; ?>
     <style>
-        body { font-family: 'Kanit', sans-serif; }
         .hero-slider { position: relative; height: 420px; overflow: hidden; }
         @media (min-width: 768px) { .hero-slider { height: 560px; } }
         @media (min-width: 1024px) { .hero-slider { height: 740px; } }

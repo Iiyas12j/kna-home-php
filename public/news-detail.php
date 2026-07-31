@@ -14,16 +14,18 @@ if ($pdo instanceof PDO && $id > 0) {
     }
 }
 $siteHeaderActive = 'news';
+$page_title = $item ? $item['title'] . ' - KNA Interpharma' : 'News - KNA Interpharma';
+if ($item && !empty($item['summary'])) {
+    $page_description = mb_substr($item['summary'], 0, 160);
+}
+if ($item && !empty($item['hero_image'])) {
+    $page_og_image = upload_url($item['hero_image'], 'news');
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $item ? h($item['title']) : 'News'; ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Kanit', sans-serif; }</style>
+    <?php require_once __DIR__ . '/partials/site-head.php'; ?>
 </head>
 <body class="bg-gray-50">
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
