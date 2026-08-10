@@ -51,12 +51,101 @@ $siteHeaderActive = 'trainer';
         .doctor-card {
             background: #fff;
             border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            transition: box-shadow .2s, transform .2s;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
         }
         .doctor-card:hover {
-            box-shadow: 0 8px 28px rgba(0,0,0,0.10);
-            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(15,23,42,0.12);
+            transform: translateY(-4px);
+            border-color: #c7c5ea;
+        }
+        .doctor-card__photo {
+            position: relative;
+            aspect-ratio: 4 / 5;
+            background: #eef0fa;
+            overflow: hidden;
+        }
+        .doctor-card__photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: 50% 18%;
+            transition: transform .5s ease;
+        }
+        .doctor-card:hover .doctor-card__photo img {
+            transform: scale(1.045);
+        }
+        .doctor-card__placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4B4899;
+            opacity: .3;
+            font-size: 3.5rem;
+        }
+        .doctor-card__body {
+            padding: 1.35rem 1.35rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .doctor-card__name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.35;
+        }
+        .doctor-card__nameEn {
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #9ca3af;
+            margin-top: .3rem;
+        }
+        .doctor-card__meta {
+            margin-top: 1rem;
+            padding-top: .9rem;
+            border-top: 1px solid #f1f0f7;
+            display: flex;
+            flex-direction: column;
+            gap: .45rem;
+            font-size: .86rem;
+            color: #4b5563;
+        }
+        .doctor-card__meta .label {
+            display: inline-block;
+            min-width: 64px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .doctor-card__contact {
+            margin-top: auto;
+            padding-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+        .doctor-card__contact a {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            font-size: .76rem;
+            color: #6b7280;
+            background: #f8f8fc;
+            padding: .4rem .65rem;
+            border-radius: 999px;
+            transition: color .2s, background .2s;
+        }
+        .doctor-card__contact a:hover {
+            color: #4B4899;
+            background: #eef0fa;
         }
     </style>
 </head>
@@ -122,7 +211,7 @@ $siteHeaderActive = 'trainer';
             </div>
         <?php else: ?>
 
-        <div class="grid lg:grid-cols-2 gap-8">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             <?php foreach ($items as $doctor):
                 $photoUrl    = doctor_photo_url($doctor['photo'] ?? '');
                 $nameTh      = trim((string) ($doctor['name_th'] ?? ''));
@@ -130,58 +219,51 @@ $siteHeaderActive = 'trainer';
                 $specialty   = trim((string) ($doctor['specialty'] ?? ''));
                 $clinicName  = trim((string) ($doctor['clinic_name'] ?? ''));
             ?>
-            <div class="doctor-card flex flex-col sm:flex-row gap-6 sm:gap-8 p-6 sm:p-8">
+            <div class="doctor-card">
 
                 <!-- Photo -->
-                <div class="shrink-0 w-full sm:w-[260px]">
+                <div class="doctor-card__photo">
                     <?php if ($photoUrl !== ''): ?>
                         <img src="<?php echo h($photoUrl); ?>"
                              alt="<?php echo h($nameTh); ?>"
-                             class="w-full sm:w-[260px] h-[300px] object-cover object-top rounded-2xl shadow-sm">
+                             loading="lazy" decoding="async">
                     <?php else: ?>
-                        <div class="w-full sm:w-[260px] h-[300px] rounded-2xl flex items-center justify-center shadow-sm"
-                             style="background:#eef0fa;">
-                            <i class="fa-solid fa-user-doctor text-7xl" style="color:#4B4899; opacity:.35;"></i>
+                        <div class="doctor-card__placeholder">
+                            <i class="fa-solid fa-user-doctor"></i>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- Info -->
-                <div class="flex-1 min-w-0 py-2 flex flex-col justify-center">
-                    <h2 class="text-2xl font-bold text-gray-900 leading-snug"><?php echo h($nameTh); ?></h2>
+                <div class="doctor-card__body">
+                    <h2 class="doctor-card__name"><?php echo h($nameTh); ?></h2>
 
                     <?php if ($nameEn !== ''): ?>
-                        <p class="text-base font-medium text-gray-400 uppercase tracking-wide mt-1.5">
-                            <?php echo h($nameEn); ?>
-                        </p>
+                        <p class="doctor-card__nameEn"><?php echo h($nameEn); ?></p>
                     <?php endif; ?>
 
-                    <div class="mt-6 space-y-3 text-lg text-gray-700">
+                    <div class="doctor-card__meta">
                         <p>
-                            <span class="font-semibold text-gray-800">เฉพาะทาง</span>
-                            <span class="text-gray-500 mx-1">:</span>
+                            <span class="label">เฉพาะทาง</span>
                             <?php echo h($specialty !== '' ? $specialty : '-'); ?>
                         </p>
                         <p>
-                            <span class="font-semibold text-gray-800 uppercase">CLINIC</span>
-                            <span class="text-gray-500 mx-1">:</span>
+                            <span class="label">Clinic</span>
                             <?php echo h($clinicName !== '' ? $clinicName : '-'); ?>
                         </p>
                     </div>
 
                     <?php if (!empty($doctor['phone']) || !empty($doctor['email'])): ?>
-                    <div class="flex flex-wrap gap-4 mt-6 text-base">
+                    <div class="doctor-card__contact">
                         <?php if (!empty($doctor['phone'])): ?>
-                            <a href="tel:<?php echo h($doctor['phone']); ?>"
-                               class="flex items-center gap-2 text-gray-500 hover:text-[#4B4899] transition bg-gray-50 px-4 py-2 rounded-lg">
-                                <i class="fa-solid fa-phone text-sm"></i>
+                            <a href="tel:<?php echo h($doctor['phone']); ?>">
+                                <i class="fa-solid fa-phone text-xs"></i>
                                 <?php echo h($doctor['phone']); ?>
                             </a>
                         <?php endif; ?>
                         <?php if (!empty($doctor['email'])): ?>
-                            <a href="mailto:<?php echo h($doctor['email']); ?>"
-                               class="flex items-center gap-2 text-gray-500 hover:text-[#4B4899] transition bg-gray-50 px-4 py-2 rounded-lg">
-                                <i class="fa-solid fa-envelope text-sm"></i>
+                            <a href="mailto:<?php echo h($doctor['email']); ?>">
+                                <i class="fa-solid fa-envelope text-xs"></i>
                                 <?php echo h($doctor['email']); ?>
                             </a>
                         <?php endif; ?>

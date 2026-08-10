@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/db.php';
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/partials/product-theme-functions.php';
 
 function product_media_url(?string $value, string $fallback = ''): string
 {
@@ -111,7 +112,7 @@ $siteHeaderActive = 'product';
                     $imageUrl = product_media_url($row['hero_image'] ?? '', '');
                     $name = trim((string) ($row['name'] ?? ''));
                     ?>
-                    <a href="/single-product.php?id=<?php echo (int) ($row['id'] ?? 0); ?>" class="group block">
+                    <a href="<?php echo h(product_detail_url($name)); ?>" class="group block">
                         <div class="relative aspect-[12/5] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f3f3fa] to-[#e8e8f4] ring-1 ring-slate-200/60 transition duration-300 group-hover:ring-indigo-200 group-hover:shadow-[0_20px_48px_rgba(75,72,153,0.14)]">
                             <?php if ($imageUrl !== ''): ?>
                                 <img src="<?php echo h($imageUrl); ?>" alt="<?php echo h($name); ?>"

@@ -299,23 +299,16 @@ $siteHeaderActive = 'clinic';
                             <?php
                             $clinicId = (int) ($clinic['id'] ?? 0);
                             $clinicProductList = $clinicProducts[$clinicId] ?? [];
-                            $heroImage = clinic_media_url($clinic['hero_image'] ?? '', 'clinics');
                             $logoImage = clinic_media_url($clinic['logo_image'] ?? '', 'clinics');
                             ?>
                             <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                                <?php if ($heroImage !== ''): ?>
-                                    <img src="<?php echo h($heroImage); ?>" alt="<?php echo h($clinic['name'] ?? 'Clinic'); ?>" class="h-48 w-full object-cover">
-                                <?php else: ?>
-                                    <div class="h-48 w-full bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600"></div>
-                                <?php endif; ?>
-
                                 <div class="p-6">
                                     <div class="flex items-start gap-4 mb-4">
                                         <?php if ($logoImage !== ''): ?>
-                                            <img src="<?php echo h($logoImage); ?>" alt="<?php echo h($clinic['name'] ?? 'Clinic Logo'); ?>" class="h-14 w-14 rounded-2xl object-cover border border-slate-200">
+                                            <img src="<?php echo h($logoImage); ?>" alt="<?php echo h($clinic['name'] ?? 'Clinic Logo'); ?>" class="h-20 w-20 shrink-0 rounded-2xl object-cover border border-slate-200">
                                         <?php else: ?>
-                                            <div class="h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100">
-                                                <i class="fa-solid fa-hospital text-xl"></i>
+                                            <div class="h-20 w-20 shrink-0 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100">
+                                                <i class="fa-solid fa-hospital text-2xl"></i>
                                             </div>
                                         <?php endif; ?>
 
@@ -331,11 +324,11 @@ $siteHeaderActive = 'clinic';
                                         <div class="flex flex-wrap gap-2 mb-4">
                                             <?php foreach ($clinicProductList as $clinicProduct): ?>
                                                 <?php if (!empty($clinicProduct['logo'])): ?>
-                                                    <span class="inline-flex items-center justify-center h-12 w-36 rounded-xl bg-white border border-slate-200 shadow-sm px-2" title="<?php echo h($clinicProduct['name']); ?>">
-                                                        <img src="<?php echo h($clinicProduct['logo']); ?>" alt="<?php echo h($clinicProduct['name']); ?>" class="max-h-9 max-w-full object-contain">
+                                                    <span class="inline-flex items-center justify-center h-11 w-32 rounded-xl bg-white border border-slate-200 shadow-sm px-2" title="<?php echo h($clinicProduct['name']); ?>">
+                                                        <img src="<?php echo h($clinicProduct['logo']); ?>" alt="<?php echo h($clinicProduct['name']); ?>" class="max-h-8 max-w-full object-contain">
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center justify-center h-12 w-36 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 text-sm font-medium truncate"><?php echo h($clinicProduct['name']); ?></span>
+                                                    <span class="inline-flex items-center justify-center h-11 w-32 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 text-sm font-medium truncate"><?php echo h($clinicProduct['name']); ?></span>
                                                 <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
@@ -368,15 +361,35 @@ $siteHeaderActive = 'clinic';
                                         <?php endif; ?>
                                     </div>
 
-                                    <div class="mt-6 flex flex-wrap gap-3">
+                                    <div class="mt-6 flex flex-wrap items-center gap-3">
                                         <?php if (!empty($clinic['map_url'])): ?>
-                                            <a href="<?php echo h($clinic['map_url']); ?>" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
-                                                <i class="fa-solid fa-map-location-dot"></i> ดูแผนที่
+                                            <a href="<?php echo h($clinic['map_url']); ?>" target="_blank" rel="noopener noreferrer" aria-label="ดูแผนที่" title="ดูแผนที่" class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-700">
+                                                <i class="fa-solid fa-map-location-dot"></i>
                                             </a>
                                         <?php endif; ?>
                                         <?php if (!empty($clinic['website_url'])): ?>
-                                            <a href="<?php echo h($clinic['website_url']); ?>" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
-                                                <i class="fa-solid fa-globe"></i> เว็บไซต์
+                                            <a href="<?php echo h($clinic['website_url']); ?>" target="_blank" rel="noopener noreferrer" aria-label="เว็บไซต์" title="เว็บไซต์" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-indigo-600 hover:text-indigo-600">
+                                                <i class="fa-solid fa-globe"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($clinic['facebook_url'])): ?>
+                                            <a href="<?php echo h($clinic['facebook_url']); ?>" target="_blank" rel="noopener noreferrer" aria-label="Facebook" title="Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-[#1877F2] hover:text-[#1877F2]">
+                                                <i class="fa-brands fa-facebook-f"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($clinic['instagram_url'])): ?>
+                                            <a href="<?php echo h($clinic['instagram_url']); ?>" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-[#E1306C] hover:text-[#E1306C]">
+                                                <i class="fa-brands fa-instagram"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($clinic['tiktok_url'])): ?>
+                                            <a href="<?php echo h($clinic['tiktok_url']); ?>" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900">
+                                                <i class="fa-brands fa-tiktok"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($clinic['line_id'])): ?>
+                                            <a href="<?php echo h($clinic['line_id']); ?>" target="_blank" rel="noopener noreferrer" aria-label="LINE" title="LINE" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-[#06C755] hover:text-[#06C755]">
+                                                <i class="fa-brands fa-line"></i>
                                             </a>
                                         <?php endif; ?>
                                     </div>

@@ -30,8 +30,8 @@ $page_title = 'About Us - KNA Interpharma';
         <div class="container mx-auto px-4">
             <div class="max-w-6xl mx-auto">
                 <div class="grid md:grid-cols-2 gap-12 items-center">
-                    <div>
-                        <img src="/uploads/product1.jpg" alt="KNA INTERPHAMA" class="rounded-2xl shadow-lg w-full">
+                    <div class="rounded-2xl shadow-lg bg-white flex items-center justify-center p-4">
+                        <img src="/uploads/logo-kna.png" alt="KNA Interpharma logo" class="w-full object-contain">
                     </div>
                     <div>
                         <h2 class="text-4xl font-bold mb-6" style="color: #4B4899;">K.N.A INTER PHARMA Co.,Ltd</h2>
@@ -72,42 +72,30 @@ $page_title = 'About Us - KNA Interpharma';
             <div class="max-w-6xl mx-auto">
                 <h2 class="text-4xl font-bold text-center mb-12" style="color: #4B4899;">Our Products</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                    <div class="text-center">
+                    <a href="/hyabell.php" class="text-center block">
                         <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                             <img src="/uploads/about/Hyabell.png" alt="Hyabell" class="h-32 mx-auto mb-4 object-contain">
                             <h3 class="font-bold text-gray-800">HYABELL</h3>
                         </div>
-                    </div>
-                    <div class="text-center">
+                    </a>
+                    <a href="/variofill.php" class="text-center block">
                         <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                             <img src="/uploads/about/Variofill.png" alt="Variofill" class="h-32 mx-auto mb-4 object-contain">
                             <h3 class="font-bold text-gray-800">VARIOFILL</h3>
                         </div>
-                    </div>
-                    <div class="text-center">
+                    </a>
+                    <a href="/meteora.php" class="text-center block">
                         <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                             <img src="/uploads/about/Meteora-Thread.png" alt="Meteora Thread" class="h-32 mx-auto mb-4 object-contain">
                             <h3 class="font-bold text-gray-800">METEORA THREAD</h3>
                         </div>
-                    </div>
-                    <div class="text-center">
+                    </a>
+                    <a href="/neofilera.php" class="text-center block">
                         <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                             <img src="/uploads/about/NeoFilera.png" alt="NeoFilera" class="h-32 mx-auto mb-4 object-contain">
                             <h3 class="font-bold text-gray-800">NEOFILERA</h3>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Additional Images -->
-    <section class="py-16 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="max-w-6xl mx-auto">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <img src="/uploads/product3.jpg" alt="KNA Clinic" class="rounded-2xl shadow-lg w-full h-96 object-cover">
-                    <img src="/uploads/product4.jpg" alt="KNA Treatment" class="rounded-2xl shadow-lg w-full h-96 object-cover">
+                    </a>
                 </div>
             </div>
         </div>

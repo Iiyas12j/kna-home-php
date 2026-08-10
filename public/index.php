@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/db.php';
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/partials/product-theme-functions.php';
 
 function media_url($value, $folder = '', $fallback = '')
 {
@@ -252,7 +253,7 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
                 if ($needle === '') {
                     return '/product.php';
                 }
-                $bestId = 0;
+                $bestName = '';
                 $bestDistance = PHP_INT_MAX;
                 foreach ($products as $product) {
                     $candidate = $normalize((string) ($product['name'] ?? ''));
@@ -265,10 +266,10 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
                     }
                     if ($distance < $bestDistance) {
                         $bestDistance = $distance;
-                        $bestId = (int) $product['id'];
+                        $bestName = (string) $product['name'];
                     }
                 }
-                return ($bestId > 0 && $bestDistance <= 3) ? '/single-product.php?id=' . $bestId : '/product.php';
+                return ($bestName !== '' && $bestDistance <= 3) ? product_detail_url($bestName) : '/product.php';
             };
             ?>
             <?php foreach (array_slice($groupItems, 0, 4) as $item): ?>
@@ -345,10 +346,10 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
                     <div class="aspect-[9/16] bg-gray-100">
                         <?php if ($videoId): ?>
                             <iframe
-                                src="https://www.tiktok.com/player/v1/<?php echo h($videoId); ?>?music_info=0&description=0&rel=0"
+                                class="tiktok-autoplay-frame"
+                                data-src="https://www.tiktok.com/player/v1/<?php echo h($videoId); ?>?music_info=0&description=0&rel=0&autoplay=1&loop=1&muted=1"
                                 title="<?php echo h($video['title'] ?? 'TikTok'); ?>"
-                                allow="fullscreen"
-                                loading="lazy"
+                                allow="autoplay; encrypted-media; fullscreen"
                                 style="display:block;width:100%;height:100%;border:0;"></iframe>
                         <?php else: ?>
                             <a href="<?php echo h($videoUrl !== '' ? $videoUrl : '#'); ?>" target="_blank" rel="noopener">
@@ -397,6 +398,34 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
     if (slides.length > 1) {
         setInterval(function () { changeSlide(1); }, 4500);
     }
+
+    (function () {
+        var frames = document.querySelectorAll('.tiktok-autoplay-frame[data-src]');
+        if (!frames.length) {
+            return;
+        }
+
+        function mount(frame) {
+            frame.src = frame.dataset.src;
+            frame.removeAttribute('data-src');
+        }
+
+        if (!('IntersectionObserver' in window)) {
+            frames.forEach(mount);
+            return;
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    mount(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '200px 0px' });
+
+        frames.forEach(function (frame) { observer.observe(frame); });
+    })();
 </script>
 
 </body>
