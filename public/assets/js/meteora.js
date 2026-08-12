@@ -1,10 +1,10 @@
-// NeoFilera cinematic page behaviour. Scoped to .nf-page — no globals besides
+// METEORA cinematic page behaviour. Scoped to .mt-page — no globals besides
 // the one IIFE below. Progressive enhancement: the DOM is fully readable/usable
 // with JS disabled (real text, real links, real <img> gallery tiles).
 (function () {
     'use strict';
 
-    var root = document.querySelector('.nf-page');
+    var root = document.querySelector('.mt-page');
     if (!root) return;
 
     document.documentElement.classList.remove('no-js');
@@ -13,11 +13,11 @@
 
     // ── Ambient hero video ───────────────────────────────────────────────
     (function initHeroVideo() {
-        var heroVideo = root.querySelector('.nf-hero-video');
+        var heroVideo = root.querySelector('.mt-hero-video');
         if (!heroVideo) return;
         if (reducedMotion) { heroVideo.pause(); heroVideo.removeAttribute('autoplay'); return; }
 
-        var hero = root.querySelector('.nf-hero');
+        var hero = root.querySelector('.mt-hero');
         var io = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) heroVideo.play().catch(function () {});
@@ -31,9 +31,66 @@
         return Math.min(max, Math.max(min, value));
     }
 
+    // ── Spec cards: staggered one-by-one reveal + cursor-tilt. Self-contained
+    // and placed early so it runs even if something later in this file throws.
+    (function initSpecCards() {
+        var list = root.querySelector('.mt-specs-list');
+        if (!list) return;
+        var cards = Array.prototype.slice.call(list.children);
+        if (!cards.length) return;
+
+        if (!reducedMotion) {
+            cards.forEach(function (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(28px)';
+            });
+
+            var revealed = false;
+            function revealCards() {
+                if (revealed) return;
+                revealed = true;
+                cards.forEach(function (card, i) {
+                    setTimeout(function () {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, i * 140);
+                });
+            }
+
+            if ('IntersectionObserver' in window) {
+                var specIo = new IntersectionObserver(function (entries, obs) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            revealCards();
+                            obs.disconnect();
+                        }
+                    });
+                }, { threshold: 0.16 });
+                specIo.observe(list);
+            } else {
+                revealCards();
+            }
+        }
+
+        if (!reducedMotion) {
+            cards.forEach(function (card) {
+                card.addEventListener('pointermove', function (e) {
+                    if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+                    var rect = card.getBoundingClientRect();
+                    var nx = (e.clientX - rect.left) / rect.width - 0.5;
+                    var ny = (e.clientY - rect.top) / rect.height - 0.5;
+                    card.style.transform = 'perspective(800px) rotateX(' + (-ny * 9).toFixed(2) + 'deg) rotateY(' + (nx * 9).toFixed(2) + 'deg) translateY(-4px)';
+                }, { passive: true });
+                card.addEventListener('pointerleave', function () {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+        }
+    })();
+
     // ── Scroll-scrubbed scene progress ───────────────────────────────────
-    var progressBar = root.querySelector('.nf-progress i');
-    var techScene = root.querySelector('.nf-tech');
+    var progressBar = root.querySelector('.mt-progress i');
+    var techScene = root.querySelector('.mt-tech');
     var frameRequested = false;
 
     function sceneProgress(el) {
@@ -44,26 +101,20 @@
     }
 
     // ── Scroll-scrubbed Technology video (plays frame-by-frame as you scroll) ─
-    var techVideo = root.querySelector('.nf-tech-video');
+    var techVideo = root.querySelector('.mt-tech-video');
     var techVideoDuration = 0;
     var techVideoReady = false;
 
-    var NF_DEBUG_SCRUB = false;
-
     function markTechVideoReady() {
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] event fired, readyState=', techVideo.readyState, 'duration=', techVideo.duration);
         if (techVideoReady) return;
         techVideoDuration = techVideo.duration || 0;
         if (!(techVideoDuration > 0) || !isFinite(techVideoDuration)) return;
         techVideoReady = true;
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] READY, duration=', techVideoDuration);
         // Prime the decoder (some browsers won't render seeked frames until
         // playback has started at least once) — play a beat, then pause.
         var primePlay = techVideo.play();
         if (primePlay && typeof primePlay.then === 'function') {
-            primePlay.then(function () { techVideo.pause(); }).catch(function (err) {
-                if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] prime play() rejected:', err);
-            });
+            primePlay.then(function () { techVideo.pause(); }).catch(function () {});
         } else {
             techVideo.pause();
         }
@@ -71,23 +122,16 @@
     }
 
     if (techVideo) {
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] found element, initial readyState=', techVideo.readyState);
         techVideo.addEventListener('loadedmetadata', markTechVideoReady);
         techVideo.addEventListener('durationchange', markTechVideoReady);
         techVideo.addEventListener('canplay', markTechVideoReady);
-        techVideo.addEventListener('error', function () {
-            if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] error event, video.error=', techVideo.error);
-        });
         // Metadata may already be cached/loaded before these listeners attach.
         if (techVideo.readyState >= 1) markTechVideoReady();
-    } else if (NF_DEBUG_SCRUB) {
-        console.log('[nf-tech-video] .nf-tech-video element NOT FOUND in DOM');
     }
 
     function scrubTechVideo(progress) {
         if (!techVideo || !techVideoReady) return;
         var target = Math.min(clamp(progress, 0, 1) * techVideoDuration, techVideoDuration - 0.05);
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] scrub progress=', progress.toFixed(3), 'target=', target.toFixed(2), 'currentTime=', techVideo.currentTime.toFixed(2));
         if (Math.abs(techVideo.currentTime - target) > 0.03) {
             techVideo.currentTime = target;
         }
@@ -95,20 +139,19 @@
 
     // ── Statement: scroll-track progress drives the word-lighting instead of
     // the words' own (pinned, unchanging) position once the section is sticky.
-    var statementScene = root.querySelector('.nf-statement');
+    var statementScene = root.querySelector('.mt-statement');
     var statementProgress = 0;
 
-    // ── Atmosphere: crossfade vial → box as you scroll through the section ──
-    var atmosphereScene = root.querySelector('.nf-atmosphere');
-    var vialImg = root.querySelector('.nf-product-img--vial');
-    var boxImg = root.querySelector('.nf-product-img--box');
-
-    function scrubAtmosphereImages(progress) {
-        if (!vialImg || !boxImg) return;
-        var p = clamp(progress, 0, 1);
-        vialImg.style.opacity = String(clamp(1 - p * 1.6, 0, 1));
-        boxImg.style.opacity = String(clamp(p * 1.6 - 0.3, 0, 1));
-    }
+    // ── Atmosphere: thread slides up from below, then detail cards assemble
+    // one at a time (alternating left/right) as the pinned scene scrolls.
+    var atmosphereScene = root.querySelector('.mt-atmosphere');
+    var detailEls = Array.prototype.slice.call(root.querySelectorAll('.mt-detail'));
+    var DETAIL_BANDS = [
+        [0.16, 0.36],
+        [0.36, 0.56],
+        [0.56, 0.76],
+        [0.76, 0.96]
+    ];
 
     function updateScrollState() {
         var scrollY = window.scrollY;
@@ -117,12 +160,21 @@
 
         if (techScene) {
             var progress = sceneProgress(techScene);
-            root.style.setProperty('--nf-tech-progress', progress.toFixed(4));
+            root.style.setProperty('--mt-tech-progress', progress.toFixed(4));
             scrubTechVideo(progress);
         }
 
         if (atmosphereScene) {
-            scrubAtmosphereImages(sceneProgress(atmosphereScene));
+            var atmosphereProgress = sceneProgress(atmosphereScene);
+            var threadT = clamp(atmosphereProgress / 0.16, 0, 1);
+            root.style.setProperty('--mt-thread-opacity', threadT.toFixed(3));
+            root.style.setProperty('--mt-thread-y', ((1 - threadT) * 70).toFixed(1) + 'px');
+
+            detailEls.forEach(function (el, i) {
+                var band = DETAIL_BANDS[i] || DETAIL_BANDS[DETAIL_BANDS.length - 1];
+                var t = clamp((atmosphereProgress - band[0]) / (band[1] - band[0]), 0, 1);
+                el.style.setProperty('--mt-d', t.toFixed(3));
+            });
         }
 
         statementProgress = statementScene ? sceneProgress(statementScene) : 1;
@@ -141,7 +193,7 @@
 
     // ── Statement word-lighting ──────────────────────────────────────────
     function splitWords() {
-        root.querySelectorAll('.nf-words').forEach(function (el) {
+        root.querySelectorAll('.mt-words').forEach(function (el) {
             var text = el.textContent.trim().replace(/\s+/g, ' ');
             el.setAttribute('aria-label', text);
             el.textContent = '';
@@ -157,7 +209,7 @@
     }
 
     function updateWordLighting() {
-        root.querySelectorAll('.nf-words').forEach(function (el) {
+        root.querySelectorAll('.mt-words').forEach(function (el) {
             var words = el.querySelectorAll('span');
             var litCount = Math.ceil(statementProgress * words.length);
             words.forEach(function (word, i) { word.classList.toggle('is-lit', i < litCount); });
@@ -168,7 +220,7 @@
 
     // ── Canvas particle field ────────────────────────────────────────────
     (function initParticles() {
-        var canvas = root.querySelector('.nf-particles');
+        var canvas = root.querySelector('.mt-particles');
         if (!canvas || reducedMotion) return;
         var ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -211,7 +263,7 @@
                 var pulse = 0.55 + Math.sin(time * 0.001 + p.phase) * 0.35;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 205, 100, ' + (p.alpha * pulse) + ')';
+                ctx.fillStyle = 'rgba(169, 180, 255, ' + (p.alpha * pulse) + ')';
                 ctx.fill();
             });
             window.requestAnimationFrame(frame);
@@ -223,43 +275,46 @@
     })();
 
     // ── Cursor light + hero-ready reveal ─────────────────────────────────
-    var finePointer = window.matchMedia('(pointer: fine)').matches;
-    var productStageEl = root.querySelector('.nf-product-stage');
-    if (finePointer) {
-        window.addEventListener('pointermove', function (e) {
-            root.style.setProperty('--nf-mouse-x', e.clientX + 'px');
-            root.style.setProperty('--nf-mouse-y', e.clientY + 'px');
+    // Checked per-event via e.pointerType rather than a static
+    // matchMedia('(pointer: fine)') gate — that upfront check has been seen to
+    // evaluate inconsistently across browsers on the same machine (works in
+    // Safari, silently never attaches in Chrome on some setups). Reading the
+    // actual event's pointerType is authoritative and can't get stuck off.
+    var productStageEl = root.querySelector('.mt-product-stage');
+    window.addEventListener('pointermove', function (e) {
+        if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+        root.style.setProperty('--mt-mouse-x', e.clientX + 'px');
+        root.style.setProperty('--mt-mouse-y', e.clientY + 'px');
 
-            if (productStageEl && !reducedMotion) {
-                var nx = (e.clientX / window.innerWidth - 0.5) * 2;
-                var ny = (e.clientY / window.innerHeight - 0.5) * 2;
-                productStageEl.style.transform = 'translate(' + (nx * 14) + 'px, ' + (ny * 10) + 'px)';
-            }
-        }, { passive: true });
-    }
+        if (productStageEl && !reducedMotion) {
+            var nx = (e.clientX / window.innerWidth - 0.5) * 2;
+            var ny = (e.clientY / window.innerHeight - 0.5) * 2;
+            productStageEl.style.transform = 'translate(' + (nx * 14) + 'px, ' + (ny * 10) + 'px)';
+        }
+    }, { passive: true });
 
     window.requestAnimationFrame(function () {
-        window.requestAnimationFrame(function () { root.classList.add('nf-is-ready'); });
+        window.requestAnimationFrame(function () { root.classList.add('mt-is-ready'); });
     });
 
     // ── Atmosphere stage: gradual reveal-in once scrolled into view ────────
-    var heroStageEl = root.querySelector('.nf-hero-stage');
+    var heroStageEl = root.querySelector('.mt-hero-stage');
     if (heroStageEl && !reducedMotion) {
         var stageIo = new IntersectionObserver(function (entries, obs) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
-                    heroStageEl.classList.add('nf-is-revealed');
+                    heroStageEl.classList.add('mt-is-revealed');
                     obs.unobserve(entry.target);
                 }
             });
         }, { threshold: 0.3 });
         stageIo.observe(heroStageEl);
     } else if (heroStageEl) {
-        heroStageEl.classList.add('nf-is-revealed');
+        heroStageEl.classList.add('mt-is-revealed');
     }
 
     // ── Generic scroll reveal ────────────────────────────────────────────
-    var revealTargets = root.querySelectorAll('.nf-reveal, .nf-results-list article');
+    var revealTargets = root.querySelectorAll('.mt-reveal, .mt-results-list article, .mt-specs-list article');
     if (revealTargets.length && !reducedMotion) {
         var io = new IntersectionObserver(function (entries, obs) {
             entries.forEach(function (entry) {
@@ -278,12 +333,12 @@
     (function initLightbox() {
         var imageTriggers = Array.prototype.slice.call(root.querySelectorAll('[data-lightbox-src]'));
         var videoTriggers = Array.prototype.slice.call(root.querySelectorAll('[data-lightbox-video]'));
-        var lightbox = root.querySelector('.nf-lightbox');
+        var lightbox = root.querySelector('.mt-lightbox');
         if ((!imageTriggers.length && !videoTriggers.length) || !lightbox) return;
 
         var img = lightbox.querySelector('img');
         var video = lightbox.querySelector('video');
-        var closeBtn = lightbox.querySelector('.nf-lightbox__close');
+        var closeBtn = lightbox.querySelector('.mt-lightbox__close');
         var lastFocused = null;
 
         function resetVideo() {
