@@ -293,10 +293,10 @@ if (!function_exists('site_header_link_classes')) {
         <div class="kna-site-header__actions">
             <?php if ($siteHeaderMember !== null): ?>
                 <div class="kna-site-header__account">
-                    <div class="kna-site-header__account-text">
+                    <a class="kna-site-header__account-text" href="/profile.php" style="text-decoration:none; color:inherit; display:block;">
                         <strong><?php echo h($siteHeaderMember['name'] ?: $siteHeaderMember['email']); ?></strong>
                         <span><?php echo h(member_role_label($siteHeaderMember['role'] ?? 'member')); ?></span>
-                    </div>
+                    </a>
                     <a class="kna-site-header__logout" href="<?php echo h($siteHeaderLogoutUrl); ?>">
                         <span class="kna-site-header__icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -348,10 +348,10 @@ if (!function_exists('site_header_link_classes')) {
 
             <div class="kna-site-header__mobile-account">
                 <?php if ($siteHeaderMember !== null): ?>
-                    <div class="kna-site-header__account-text">
+                    <a class="kna-site-header__account-text" href="/profile.php" style="text-decoration:none; color:inherit; display:block;">
                         <strong><?php echo h($siteHeaderMember['name'] ?: $siteHeaderMember['email']); ?></strong>
                         <span><?php echo h(member_role_label($siteHeaderMember['role'] ?? 'member')); ?></span>
-                    </div>
+                    </a>
                     <a class="kna-site-header__logout" href="<?php echo h($siteHeaderLogoutUrl); ?>">ออกจากระบบ</a>
                 <?php else: ?>
                     <a class="kna-site-header__button" href="<?php echo h($siteHeaderLoginUrl); ?>">เข้าสู่ระบบ</a>

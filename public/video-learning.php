@@ -249,29 +249,26 @@ $siteHeaderActive = 'vdo';
                     $embedUrl    = learning_embed_url($video['video_url'] ?? '');
                     $detailUrl   = '/video-detail.php?id=' . (int) ($video['id'] ?? 0);
                     $isYouTube   = $embedUrl !== null && str_contains($embedUrl, 'youtube');
+                    $youtubeId   = learning_youtube_id($video['video_url'] ?? '');
+                    if ($thumbUrl === '' && $youtubeId !== null) {
+                        $thumbUrl = 'https://img.youtube.com/vi/' . rawurlencode($youtubeId) . '/hqdefault.jpg';
+                    }
                     ?>
                     <article class="group flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg">
-                        <div class="aspect-video overflow-hidden bg-slate-900">
-                            <?php if ($embedUrl !== null): ?>
-                                <iframe
-                                    src="<?php echo h($embedUrl); ?>"
-                                    title="<?php echo h($video['title'] ?? 'Video'); ?>"
-                                    class="block h-full w-full border-0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                                    allowfullscreen
-                                    loading="lazy"></iframe>
-                            <?php elseif ($thumbUrl !== ''): ?>
-                                <a href="<?php echo h($detailUrl); ?>" class="block h-full w-full">
-                                    <img src="<?php echo h($thumbUrl); ?>"
-                                         alt="<?php echo h($video['title'] ?? 'Video'); ?>"
-                                         class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
-                                </a>
+                        <a href="<?php echo h($detailUrl); ?>" class="relative block aspect-video overflow-hidden bg-slate-900">
+                            <?php if ($thumbUrl !== ''): ?>
+                                <img src="<?php echo h($thumbUrl); ?>"
+                                     alt="<?php echo h($video['title'] ?? 'Video'); ?>"
+                                     class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                             <?php else: ?>
-                                <a href="<?php echo h($detailUrl); ?>" class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-700 to-indigo-500 text-4xl text-white/80">
-                                    <i class="fa-solid fa-circle-play"></i>
-                                </a>
+                                <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-700 to-indigo-500"></div>
                             <?php endif; ?>
-                        </div>
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/20 transition group-hover:bg-black/35">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-2xl text-indigo-700 shadow-lg transition group-hover:scale-110">
+                                    <i class="fa-solid fa-play ml-1"></i>
+                                </div>
+                            </div>
+                        </a>
                         <div class="flex flex-1 flex-col p-5">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-indigo-600">

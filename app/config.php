@@ -55,6 +55,14 @@ if (APP_ENV !== 'development') {
     ini_set('session.cookie_secure', '1');
 }
 
+// Start the session here, before any HTML output. Previously this only
+// happened deep inside app/auth.php (required from the page body), so any
+// page whose <head> was large enough to trip PHP's output buffer would
+// send headers before session_start() ran, silently breaking login/CSRF.
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // HTTPS redirect (production only)
 if (APP_ENV !== 'development' && !headers_sent()) {
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

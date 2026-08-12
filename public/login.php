@@ -17,7 +17,7 @@ $email    = '';
 $redirect = frontend_redirect_target($_REQUEST['redirect'] ?? '/video-tiktok.php');
 
 if (is_member_logged_in()) {
-    header('Location: ' . $redirect);
+    header('Location: /profile.php');
     exit;
 }
 
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'กรุณากรอกอีเมลและรหัสผ่าน';
     } elseif (member_login($pdo, $email, $password)) {
         rate_limit_clear($rl_key);
-        header('Location: ' . $redirect);
+        header('Location: /profile.php');
         exit;
     } else {
         rate_limit_hit($rl_key);

@@ -87,6 +87,14 @@ function is_member_logged_in(): bool
     return !empty($_SESSION['member_id']);
 }
 
+function require_member(): void
+{
+    if (!is_member_logged_in()) {
+        header('Location: /login.php?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? '/profile.php'));
+        exit;
+    }
+}
+
 function current_member(): ?array
 {
     if (!is_member_logged_in()) {

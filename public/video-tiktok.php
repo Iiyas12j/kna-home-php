@@ -109,6 +109,27 @@ $siteHeaderActive = 'vdo';
         </div>
     <?php endif; ?>
 
+    <!-- Banner ลิงก์ไปหน้า Learning -->
+    <div class="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8">
+        <div class="overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-slate-50">
+            <div class="flex flex-col items-center justify-between gap-7 px-9 py-9 sm:flex-row sm:px-12 sm:py-10">
+                <div class="flex items-center gap-6">
+                    <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 text-2xl">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-extrabold text-slate-900">วิดีโอการเรียนการสอนเฉพาะแพทย์</div>
+                        <p class="mt-1.5 text-base text-slate-500">องค์ความรู้ทางวิชาการ เฉพาะบุคลากรทางการแพทย์ที่ผ่านการยืนยัน</p>
+                    </div>
+                </div>
+                <a href="/video-learning.php"
+                   class="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-indigo-700 px-7 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-800">
+                    เข้าสู่ห้องเรียน <i class="fa-solid fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- TikTok Videos -->
     <section class="bg-white py-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -137,11 +158,11 @@ $siteHeaderActive = 'vdo';
                                     </video>
                                 <?php elseif ($tiktokId !== null): ?>
                                     <iframe
-                                        src="https://www.tiktok.com/player/v1/<?php echo h($tiktokId); ?>?music_info=0&description=0&rel=0"
+                                        class="tiktok-autoplay-frame"
+                                        data-src="https://www.tiktok.com/player/v1/<?php echo h($tiktokId); ?>?music_info=0&description=0&rel=0&autoplay=1&loop=1&muted=1"
                                         title="<?php echo h($video['title'] ?? 'TikTok video'); ?>"
                                         allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
-                                        allowfullscreen
-                                        loading="lazy"></iframe>
+                                        allowfullscreen></iframe>
                                 <?php elseif ($thumbUrl !== ''): ?>
                                     <img src="<?php echo h($thumbUrl); ?>"
                                          alt="<?php echo h($video['title'] ?? 'TikTok'); ?>"
@@ -163,28 +184,39 @@ $siteHeaderActive = 'vdo';
                 </div>
             <?php endif; ?>
 
-            <!-- Banner ลิงก์ไปหน้า Learning -->
-            <div class="mt-16 overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-slate-50">
-                <div class="flex flex-col items-center justify-between gap-6 px-8 py-8 sm:flex-row sm:px-10">
-                    <div class="flex items-center gap-5">
-                        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 text-xl">
-                            <i class="fa-solid fa-user-doctor"></i>
-                        </div>
-                        <div>
-                            <div class="font-extrabold text-slate-900">วิดีโอการเรียนการสอนเฉพาะแพทย์</div>
-                            <p class="mt-1 text-sm text-slate-500">องค์ความรู้ทางวิชาการ เฉพาะบุคลากรทางการแพทย์ที่ผ่านการยืนยัน</p>
-                        </div>
-                    </div>
-                    <a href="/video-learning.php"
-                       class="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-indigo-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800">
-                        เข้าสู่ห้องเรียน <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-            </div>
-
         </div>
     </section>
 
     <?php require_once __DIR__ . '/partials/site-footer.php'; ?>
+
+    <script>
+        (function () {
+            var frames = document.querySelectorAll('.tiktok-autoplay-frame[data-src]');
+            if (!frames.length) {
+                return;
+            }
+
+            function mount(frame) {
+                frame.src = frame.dataset.src;
+                frame.removeAttribute('data-src');
+            }
+
+            if (!('IntersectionObserver' in window)) {
+                frames.forEach(mount);
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        mount(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { rootMargin: '200px 0px' });
+
+            frames.forEach(function (frame) { observer.observe(frame); });
+        })();
+    </script>
 </body>
 </html>
