@@ -4,20 +4,76 @@
 // (short_description) and the real box photography/ad footage already
 // available under uploads/products/hyabell-variants/ — nothing here is invented.
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/../app/db.php';
 
 $siteHeaderActive = 'product';
 $page_title = 'Hyabell - KNA Interpharma';
 $page_description = 'HYABELL — ตระกูลฟิลเลอร์กรดไฮยาลูโรนิก (HA) เกรดพรีเมี่ยม เทคโนโลยี MPT จากเยอรมนี ครบ 5 สูตร Basic / Deep / Ultra / Lips / Meso โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_33f85ba823296811.jpg';
 
+// Extra gallery photos are admin-managed via /admin/products.php (Hyabell =
+// product id 4) — anything uploaded there lands in product_images and is
+// appended below after the fixed video/family/ribbons/wordmark tiles.
+$hyGalleryImages = [];
+if ($pdo instanceof PDO) {
+    $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
+    $stmt->execute([4]);
+    $hyGalleryImages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
 $hyVariants = [
+    [
+        'key' => 'meso',
+        'accent' => '#3ea66b',
+        'no' => '01',
+        'name' => 'Meso',
+        'tagline' => 'Pure Hyaluronic Acid to boost your skin.',
+        'image' => '/uploads/products/hyabell-variants/meso.png',
+        'bg' => '/uploads/products/hyabell-variants/meso-gel-bg.jpg',
+        'specs' => [
+            'วัสดุ' => 'Non-crosslinked HA บริสุทธิ์',
+            'ระยะเวลาคงอยู่' => 'มากกว่า 3 เดือน',
+            'ความพึงพอใจ' => '100% (เดือนที่ 1)',
+            'คลินิกอ้างอิง' => 'ADODERM GmbH',
+        ],
+        'desc' => 'ผลิตภัณฑ์ฟิลเลอร์กรดไฮยาลูโรนิกบริสุทธิ์แบบ non-crosslinked ออกแบบมาเพื่อรักษาริ้วรอย เพิ่มความชุ่มชื้น คืนความอ่อนเยาว์ กระตุ้นการสร้างคอลลาเจน จากเอกสารทางคลินิกของ ADODERM GmbH (Post Market Surveillance) หลังฉีด 1 เดือนผู้เข้ารับการรักษาพึงพอใจ 100% และหลังฉีด 3 เดือนพึงพอใจ 60%',
+        'areas' => [
+            'ใช้ได้ในทุกบริเวณ เช่น หน้าผาก ใบหน้า ใต้ตา ลำคอ และหลังมือ',
+            'เพิ่มความชุ่มชื้น ผิวฉ่ำวาว มีน้ำมีนวล กระชับรูขุมขน',
+            'เพิ่มความแข็งแรงและความยืดหยุ่นให้ผิวด้วยการกระตุ้นคอลลาเจน',
+            'ลดเลือนริ้วรอย ลดรอยดำ ลดหลุมสิว',
+        ],
+    ],
+    [
+        'key' => 'lips',
+        'accent' => '#e5484d',
+        'no' => '02',
+        'name' => 'Lips',
+        'tagline' => 'Elegance and Harmony at its most.',
+        'image' => '/uploads/products/hyabell-variants/lips.png',
+        'bg' => '/uploads/products/hyabell-variants/lips-gel-bg.jpg',
+        'specs' => [
+            'วัสดุ' => 'Crosslinked HA',
+            'ความเข้มข้น' => '12 mg/ml',
+            'ยาชา' => 'Lidocaine 0.3%',
+            'ระยะเวลาคงอยู่' => '6–9 เดือน',
+        ],
+        'desc' => 'เทคโนโลยีการผลิต MPT ให้คุณสมบัติทาง Rheology ที่โดดเด่น ขนาดโมเลกุล 200–350 ไมโครเมตร เนื้อฟิลเลอร์ละเอียด ให้ความเป็นธรรมชาติ ดันยาง่าย กำหนดปริมาณได้แม่นยำ เหมาะสำหรับเติมเต็มในผิวชั้นตื้นถึงระดับกลาง',
+        'areas' => [
+            'เติมเต็มใต้ตา ริ้วรอยหางตา',
+            'เพิ่มความชุ่มชื้นให้ผิว ทำให้ผิวกระจ่างใสฉ่ำฟู',
+            'แก้ปัญหาริ้วรอยร่องตื้น หลุมสิว',
+            'เพิ่มโวลลุ่มให้กับริมฝีปาก',
+        ],
+    ],
     [
         'key' => 'basic',
         'accent' => '#f2994a',
-        'no' => '01',
+        'no' => '03',
         'name' => 'Basic',
         'tagline' => 'For lips volume and first signs of age.',
         'image' => '/uploads/products/hyabell-variants/basic.png',
+        'bg' => '/uploads/products/hyabell-variants/basic-gel-bg.jpg',
         'specs' => [
             'วัสดุ' => 'Crosslinked HA',
             'ความเข้มข้น' => '16.0 mg/ml',
@@ -34,10 +90,11 @@ $hyVariants = [
     [
         'key' => 'deep',
         'accent' => '#2f9fd8',
-        'no' => '02',
+        'no' => '04',
         'name' => 'Deep',
         'tagline' => 'Ideal for those who look for volume and first time patients.',
         'image' => '/uploads/products/hyabell-variants/deep.png',
+        'bg' => '/uploads/products/hyabell-variants/deep-gel-bg.jpg',
         'specs' => [
             'วัสดุ' => 'Crosslinked HA',
             'ความเข้มข้น' => '20 mg/ml',
@@ -55,10 +112,11 @@ $hyVariants = [
     [
         'key' => 'ultra',
         'accent' => '#9567ff',
-        'no' => '03',
+        'no' => '05',
         'name' => 'Ultra',
         'tagline' => 'High needs of volume and face contouring.',
         'image' => '/uploads/products/hyabell-variants/ultra.png',
+        'bg' => '/uploads/products/hyabell-variants/ultra-gel-bg.jpg',
         'specs' => [
             'วัสดุ' => 'Crosslinked HA เกรดพรีเมี่ยม',
             'ความเข้มข้น' => '24 mg/ml (สูงสุด)',
@@ -70,48 +128,6 @@ $hyVariants = [
             'เติมเต็มบริเวณขมับ ยกกระชับใบหน้าส่วนกลาง (Mid-face, Zygomatic)',
             'เพิ่มโวลลุ่มบริเวณคางเพื่อความพุ่งสวย (Projection)',
             'เสริมรูปและปรับโครงสร้างกรอบหน้าบริเวณกราม',
-        ],
-    ],
-    [
-        'key' => 'lips',
-        'accent' => '#e5484d',
-        'no' => '04',
-        'name' => 'Lips',
-        'tagline' => 'Elegance and Harmony at its most.',
-        'image' => '/uploads/products/hyabell-variants/lips.png',
-        'specs' => [
-            'วัสดุ' => 'Crosslinked HA',
-            'ความเข้มข้น' => '12 mg/ml',
-            'ยาชา' => 'Lidocaine 0.3%',
-            'ระยะเวลาคงอยู่' => '6–9 เดือน',
-        ],
-        'desc' => 'เทคโนโลยีการผลิต MPT ให้คุณสมบัติทาง Rheology ที่โดดเด่น ขนาดโมเลกุล 200–350 ไมโครเมตร เนื้อฟิลเลอร์ละเอียด ให้ความเป็นธรรมชาติ ดันยาง่าย กำหนดปริมาณได้แม่นยำ เหมาะสำหรับเติมเต็มในผิวชั้นตื้นถึงระดับกลาง',
-        'areas' => [
-            'เติมเต็มใต้ตา ริ้วรอยหางตา',
-            'เพิ่มความชุ่มชื้นให้ผิว ทำให้ผิวกระจ่างใสฉ่ำฟู',
-            'แก้ปัญหาริ้วรอยร่องตื้น หลุมสิว',
-            'เพิ่มโวลลุ่มให้กับริมฝีปาก',
-        ],
-    ],
-    [
-        'key' => 'meso',
-        'accent' => '#3ea66b',
-        'no' => '05',
-        'name' => 'Meso',
-        'tagline' => 'Pure Hyaluronic Acid to boost your skin.',
-        'image' => '/uploads/products/hyabell-variants/meso.png',
-        'specs' => [
-            'วัสดุ' => 'Non-crosslinked HA บริสุทธิ์',
-            'ระยะเวลาคงอยู่' => 'มากกว่า 3 เดือน',
-            'ความพึงพอใจ' => '100% (เดือนที่ 1)',
-            'คลินิกอ้างอิง' => 'ADODERM GmbH',
-        ],
-        'desc' => 'ผลิตภัณฑ์ฟิลเลอร์กรดไฮยาลูโรนิกบริสุทธิ์แบบ non-crosslinked ออกแบบมาเพื่อรักษาริ้วรอย เพิ่มความชุ่มชื้น คืนความอ่อนเยาว์ กระตุ้นการสร้างคอลลาเจน จากเอกสารทางคลินิกของ ADODERM GmbH (Post Market Surveillance) หลังฉีด 1 เดือนผู้เข้ารับการรักษาพึงพอใจ 100% และหลังฉีด 3 เดือนพึงพอใจ 60%',
-        'areas' => [
-            'ใช้ได้ในทุกบริเวณ เช่น หน้าผาก ใบหน้า ใต้ตา ลำคอ และหลังมือ',
-            'เพิ่มความชุ่มชื้น ผิวฉ่ำวาว มีน้ำมีนวล กระชับรูขุมขน',
-            'เพิ่มความแข็งแรงและความยืดหยุ่นให้ผิวด้วยการกระตุ้นคอลลาเจน',
-            'ลดเลือนริ้วรอย ลดรอยดำ ลดหลุมสิว',
         ],
     ],
 ];
@@ -173,6 +189,9 @@ $hyVariants = [
         <!-- Variant sections -->
         <?php foreach ($hyVariants as $i => $v): ?>
         <section class="hy-variant hy-reveal<?php echo $i % 2 === 1 ? ' hy-variant--right' : ''; ?>" style="--hy-v-accent: <?php echo h($v['accent']); ?>" aria-labelledby="hyVariant<?php echo h($v['key']); ?>Title">
+            <?php if (!empty($v['bg'])): ?>
+            <img class="hy-variant-bgphoto" src="<?php echo h($v['bg']); ?>?v=<?php echo (int) @filemtime(__DIR__ . $v['bg']); ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+            <?php endif; ?>
             <div class="hy-variant-inner">
                 <div class="hy-variant-visual">
                     <div class="hy-variant-stage">
@@ -242,20 +261,14 @@ $hyVariants = [
                     <img src="/uploads/products/logo_4308458c4fc28eba.png" alt="Hyabell wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#0b0d1f;">
                     <span>Wordmark</span>
                 </button>
+                <?php foreach ($hyGalleryImages as $i => $img): ?>
+                <button type="button" class="hy-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="Hyabell — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
+                    <img src="/uploads/products/<?php echo h($img); ?>" alt="Hyabell — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">
+                    <span>ภาพผลิตภัณฑ์ <?php echo $i + 1; ?></span>
+                </button>
+                <?php endforeach; ?>
             </div>
         </section>
-
-        <!-- CTA -->
-        <div class="hy-cta">
-            <div>
-                <h3>ต้องการข้อมูลเพิ่มเติม?</h3>
-                <p>ทีมงาน KNA Interpharma พร้อมให้คำปรึกษาโดยตรง</p>
-            </div>
-            <div class="hy-cta-actions">
-                <a href="/contact.php" class="hy-btn hy-btn--solid"><i class="fa-solid fa-headset" aria-hidden="true"></i> ติดต่อเรา</a>
-                <a href="tel:056200890" class="hy-btn hy-btn--glass"><i class="fa-solid fa-phone" aria-hidden="true"></i> 056-200890</a>
-            </div>
-        </div>
 
         <!-- Lightbox -->
         <div class="hy-lightbox" role="dialog" aria-modal="true" aria-label="ภาพ/วิดีโอสินค้าแบบเต็มจอ">

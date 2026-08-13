@@ -4,11 +4,22 @@
 // (short_description) and the company's real contact details already used
 // elsewhere on this site — nothing here is invented.
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/../app/db.php';
 
 $siteHeaderActive = 'product';
 $page_title = 'NeoFilera - KNA Interpharma';
 $page_description = 'NeoFilera — The 1st Universal Biostimulator for Face & Body. Advanced Hybrid PLA ประกอบด้วย PDLLA 150 mg และ CMC 50 mg โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_bf0374b5ad2dce7a.jpg';
+
+// Extra gallery photos are admin-managed via /admin/products.php (NeoFilera
+// = product id 1) — anything uploaded there lands in product_images and is
+// appended below after the fixed video/brand/wordmark/3D tiles.
+$nfGalleryImages = [];
+if ($pdo instanceof PDO) {
+    $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
+    $stmt->execute([1]);
+    $nfGalleryImages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th" class="no-js">
@@ -120,9 +131,7 @@ $page_og_image = '/uploads/products/product_bf0374b5ad2dce7a.jpg';
         <!-- Technology / composition -->
         <section class="nf-scene nf-tech" aria-label="องค์ประกอบของ NeoFilera">
             <div class="nf-tech-sticky">
-                <video class="nf-tech-video" id="nfTechVideo" muted playsinline preload="auto" aria-hidden="true">
-                    <source src="/uploads/products/neofilera-tech-loop.mp4" type="video/mp4">
-                </video>
+                <canvas class="nf-tech-frame" id="nfTechFrame" data-frame-base="/uploads/products/neofilera-tech-frames/frame-" data-frame-count="150" aria-hidden="true"></canvas>
                 <div class="nf-tech-heading nf-d4">
                     <p class="nf-chapter"><span>02</span> Advanced Hybrid PLA</p>
                     <h2>องค์ประกอบสอง ส่วน ระบบเดียว</h2>
@@ -166,40 +175,10 @@ $page_og_image = '/uploads/products/product_bf0374b5ad2dce7a.jpg';
             </div>
         </div>
 
-        <!-- Results -->
-        <section class="nf-results" aria-labelledby="nfResultsTitle">
-            <div class="nf-results-intro">
-                <p class="nf-chapter"><span>03</span> Treatment Outcomes</p>
-                <h2 id="nfResultsTitle">ผลลัพธ์การฉีด<br>NeoFilera</h2>
-            </div>
-            <div class="nf-results-list">
-                <?php
-                $nfResults = [
-                    'ช่วยในเรื่องของการปกป้องและป้องกันริ้วรอย โดยจะช่วยลดริ้วรอยที่มีขนาดเล็กของผิว',
-                    'ช่วยในเรื่องปรับรูขุมขนที่กว้างให้มีขนาดเล็กลง',
-                    'ช่วยในเรื่องสร้างความชุ่มชื้นให้แก่ผิวหนัง',
-                    'ช่วยในการชะลอความแก่ของผิวหนัง',
-                    'ช่วยในการเพิ่มความชุ่มชื้นแก่ผิว',
-                    'ช่วยในการปรับรอยแผลเป็นจากสิว และริ้วรอยแดง รอยดำต่างๆ ให้ดูจางลง',
-                    'ช่วยในการปรับให้ผิวมีความเรียบเนียน',
-                    'ช่วยในผิวมีความแน่นและยกกระชับมากยิ่งขึ้น',
-                    'ช่วยในการกระตุ้นให้เกิดการสร้างไฟโบรบลาสหรือเซลล์ที่เป็นตัวกระตุ้นคอลลาเจนและอิลาสตินให้ดียิ่งขึ้น',
-                ];
-                ?>
-                <?php foreach ($nfResults as $i => $r): ?>
-                <article>
-                    <div class="nf-result-media" aria-hidden="true"></div>
-                    <span class="nf-no"><?php echo str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT); ?></span>
-                    <p><?php echo h($r); ?></p>
-                </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
-
         <!-- Gallery -->
         <section class="nf-gallery" aria-labelledby="nfGalleryTitle">
             <div class="nf-gallery-heading">
-                <p class="nf-chapter"><span>04</span> Product Visual</p>
+                <p class="nf-chapter"><span>03</span> Product Visual</p>
                 <h2 id="nfGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="nf-gallery-grid">
@@ -220,6 +199,12 @@ $page_og_image = '/uploads/products/product_bf0374b5ad2dce7a.jpg';
                     <i class="fa-solid fa-cube" aria-hidden="true"></i>
                     <p>ชมโมเดล 3 มิติ</p>
                 </a>
+                <?php foreach ($nfGalleryImages as $i => $img): ?>
+                <button type="button" class="nf-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="NeoFilera — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
+                    <img src="/uploads/products/<?php echo h($img); ?>" alt="NeoFilera — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">
+                    <span>ภาพผลิตภัณฑ์ <?php echo $i + 1; ?></span>
+                </button>
+                <?php endforeach; ?>
             </div>
         </section>
 

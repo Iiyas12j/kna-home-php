@@ -271,11 +271,25 @@ html:not(.no-js) .hy-hero-actions { opacity: 0; transform: translateY(20px); }
     overflow: clip;
 }
 
-.hy-variant::before {
+.hy-variant-bgphoto {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    opacity: 0.85;
+    filter: grayscale(0.15);
+}
+
+.hy-variant::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at var(--hy-glow-x, 20%) 30%, color-mix(in srgb, var(--hy-v-accent) 16%, transparent), transparent 55%);
+    background:
+        radial-gradient(circle at var(--hy-glow-x, 20%) 30%, color-mix(in srgb, var(--hy-v-accent) 26%, transparent), transparent 55%),
+        color-mix(in srgb, var(--hy-ink) 60%, transparent);
     pointer-events: none;
 }
 
@@ -399,8 +413,9 @@ html:not(.no-js) .hy-hero-actions { opacity: 0; transform: translateY(20px); }
 .hy-variant-specs li {
     padding: 0.9rem 1.05rem;
     border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(10, 12, 20, 0.55);
+    backdrop-filter: blur(10px);
 }
 
 .hy-variant-specs span {

@@ -4,11 +4,22 @@
 // (short_description) and the company's real contact details already used
 // elsewhere on this site — nothing here is invented.
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/../app/db.php';
 
 $siteHeaderActive = 'product';
 $page_title = 'METEORA - KNA Interpharma';
 $page_description = 'METEORA THREAD — ไหมขนนกจากไต้หวัน ยกกระชับ เบาสบาย ผลิตโดย Diamond Biotechnology วัสดุ PDO ปลอดภัยสูง โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_445da58afe7ebb7d.jpg';
+
+// Extra gallery photos are admin-managed via /admin/products.php (METEORA =
+// product id 2) — anything uploaded there lands in product_images and is
+// appended below after the fixed video/brand/zones/wordmark tiles.
+$mtGalleryImages = [];
+if ($pdo instanceof PDO) {
+    $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
+    $stmt->execute([2]);
+    $mtGalleryImages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th" class="no-js">
@@ -129,7 +140,7 @@ $page_og_image = '/uploads/products/product_445da58afe7ebb7d.jpg';
         <!-- Technology / thread architecture -->
         <section class="mt-scene mt-tech" aria-label="โครงสร้างเงี่ยงไหมของ METEORA">
             <div class="mt-tech-sticky">
-                <video class="mt-tech-video" id="mtTechVideo" muted playsinline preload="auto" aria-hidden="true">
+                <video class="mt-tech-video" id="mtTechVideo" autoplay muted loop playsinline preload="auto" aria-hidden="true">
                     <source src="/uploads/products/meteora-tech-loop.mp4" type="video/mp4">
                 </video>
                 <div class="mt-tech-heading mt-d4">
@@ -172,40 +183,10 @@ $page_og_image = '/uploads/products/product_445da58afe7ebb7d.jpg';
             </div>
         </div>
 
-        <!-- Results -->
-        <section class="mt-results" aria-labelledby="mtResultsTitle">
-            <div class="mt-results-intro">
-                <p class="mt-chapter"><span>03</span> Treatment Outcomes</p>
-                <h2 id="mtResultsTitle">ผลลัพธ์การร้อยไหม<br>METEORA</h2>
-            </div>
-            <div class="mt-results-list">
-                <?php
-                $mtResults = [
-                    'ยกกระชับแก้มหย่อนคล้อย ร่องแก้ม ร่องน้ำหมาก',
-                    'แก้ไขมุมปากตก',
-                    'ยกกระชับเหนียง',
-                    'แก้ไขหนังตา หางตา หางคิ้วตก',
-                    'ยกกระชับหน้าท้อง',
-                    'เพิ่มความกระชับให้ผิว แก้ปัญหาผิวหน้าหย่อนคล้อย',
-                    'เห็นผลลัพธ์ชัดเจนที่สุดในช่วงประมาณ 4 สัปดาห์หลังการร้อยไหม',
-                    'ไหมสลายหมดในช่วง 6-8 เดือน แต่กระตุ้นคอลลาเจนต่อเนื่องได้ถึง 12 เดือน',
-                    'บรรจุ 1 เส้นไหมต่อ 1 ซองปลอดเชื้อ คงมาตรฐานความสะอาดสูงสุด',
-                ];
-                ?>
-                <?php foreach ($mtResults as $i => $r): ?>
-                <article>
-                    <div class="mt-result-media" aria-hidden="true"></div>
-                    <span class="mt-no"><?php echo str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT); ?></span>
-                    <p><?php echo h($r); ?></p>
-                </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
-
         <!-- Gallery -->
         <section class="mt-gallery" aria-labelledby="mtGalleryTitle">
             <div class="mt-gallery-heading">
-                <p class="mt-chapter"><span>04</span> Product Visual</p>
+                <p class="mt-chapter"><span>03</span> Product Visual</p>
                 <h2 id="mtGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="mt-gallery-grid">
@@ -226,6 +207,12 @@ $page_og_image = '/uploads/products/product_445da58afe7ebb7d.jpg';
                     <img src="/uploads/products/logo_b8a022812ee848c2.png" alt="METEORA wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#0b0d1f;">
                     <span>Wordmark</span>
                 </button>
+                <?php foreach ($mtGalleryImages as $i => $img): ?>
+                <button type="button" class="mt-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="METEORA — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
+                    <img src="/uploads/products/<?php echo h($img); ?>" alt="METEORA — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">
+                    <span>ภาพผลิตภัณฑ์ <?php echo $i + 1; ?></span>
+                </button>
+                <?php endforeach; ?>
             </div>
         </section>
 

@@ -4,11 +4,22 @@
 // (short_description) — nothing here is invented. No ad video exists for this
 // product yet, so the hero uses the real product cover photo instead.
 require_once __DIR__ . '/../app/helpers.php';
+require_once __DIR__ . '/../app/db.php';
 
 $siteHeaderActive = 'product';
 $page_title = 'Variofill - KNA Interpharma';
 $page_description = 'VARIOFILL for Gluteal Augmentation — ฟิลเลอร์สำหรับฉีดสะโพกจากเยอรมนี เพียงหนึ่งเดียวที่ผ่าน อย. ในประเทศไทย ความเข้มข้น HA 33 mg/ml โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_0804341d31d48a0b.jpg';
+
+// Extra gallery photos are admin-managed via /admin/products.php (Variofill
+// = product id 3) — anything uploaded there lands in product_images and is
+// appended below after the fixed brand/pack/wordmark tiles.
+$vfGalleryImages = [];
+if ($pdo instanceof PDO) {
+    $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
+    $stmt->execute([3]);
+    $vfGalleryImages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th" class="no-js">
@@ -193,6 +204,12 @@ $page_og_image = '/uploads/products/product_0804341d31d48a0b.jpg';
                     <img src="/uploads/products/logo_0265c86b4c258082.png" alt="Variofill wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#150a12;">
                     <span>Wordmark</span>
                 </button>
+                <?php foreach ($vfGalleryImages as $i => $img): ?>
+                <button type="button" class="vf-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="Variofill — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
+                    <img src="/uploads/products/<?php echo h($img); ?>" alt="Variofill — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">
+                    <span>ภาพผลิตภัณฑ์ <?php echo $i + 1; ?></span>
+                </button>
+                <?php endforeach; ?>
             </div>
         </section>
 

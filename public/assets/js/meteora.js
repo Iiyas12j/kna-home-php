@@ -27,6 +27,23 @@
         if (hero) io.observe(hero);
     })();
 
+    // ── Technology looping video — plays/pauses on visibility only, no
+    // scroll-scrub (was scroll-driven before; simplified to a plain loop). ──
+    (function initTechVideo() {
+        var techVideo = root.querySelector('.mt-tech-video');
+        if (!techVideo) return;
+        if (reducedMotion) { techVideo.pause(); techVideo.removeAttribute('autoplay'); return; }
+
+        var techSection = root.querySelector('.mt-tech');
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) techVideo.play().catch(function () {});
+                else techVideo.pause();
+            });
+        }, { threshold: 0 });
+        if (techSection) io.observe(techSection);
+    })();
+
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
     }
@@ -90,7 +107,6 @@
 
     // ── Scroll-scrubbed scene progress ───────────────────────────────────
     var progressBar = root.querySelector('.mt-progress i');
-    var techScene = root.querySelector('.mt-tech');
     var frameRequested = false;
 
     function sceneProgress(el) {
@@ -98,43 +114,6 @@
         var rect = el.getBoundingClientRect();
         var travel = Math.max(1, rect.height - window.innerHeight);
         return clamp(-rect.top / travel, 0, 1);
-    }
-
-    // ── Scroll-scrubbed Technology video (plays frame-by-frame as you scroll) ─
-    var techVideo = root.querySelector('.mt-tech-video');
-    var techVideoDuration = 0;
-    var techVideoReady = false;
-
-    function markTechVideoReady() {
-        if (techVideoReady) return;
-        techVideoDuration = techVideo.duration || 0;
-        if (!(techVideoDuration > 0) || !isFinite(techVideoDuration)) return;
-        techVideoReady = true;
-        // Prime the decoder (some browsers won't render seeked frames until
-        // playback has started at least once) — play a beat, then pause.
-        var primePlay = techVideo.play();
-        if (primePlay && typeof primePlay.then === 'function') {
-            primePlay.then(function () { techVideo.pause(); }).catch(function () {});
-        } else {
-            techVideo.pause();
-        }
-        scrubTechVideo(sceneProgress(techScene));
-    }
-
-    if (techVideo) {
-        techVideo.addEventListener('loadedmetadata', markTechVideoReady);
-        techVideo.addEventListener('durationchange', markTechVideoReady);
-        techVideo.addEventListener('canplay', markTechVideoReady);
-        // Metadata may already be cached/loaded before these listeners attach.
-        if (techVideo.readyState >= 1) markTechVideoReady();
-    }
-
-    function scrubTechVideo(progress) {
-        if (!techVideo || !techVideoReady) return;
-        var target = Math.min(clamp(progress, 0, 1) * techVideoDuration, techVideoDuration - 0.05);
-        if (Math.abs(techVideo.currentTime - target) > 0.03) {
-            techVideo.currentTime = target;
-        }
     }
 
     // ── Statement: scroll-track progress drives the word-lighting instead of
@@ -157,12 +136,6 @@
         var scrollY = window.scrollY;
         var maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
         if (progressBar) progressBar.style.transform = 'scaleY(' + clamp(scrollY / maxScroll, 0, 1) + ')';
-
-        if (techScene) {
-            var progress = sceneProgress(techScene);
-            root.style.setProperty('--mt-tech-progress', progress.toFixed(4));
-            scrubTechVideo(progress);
-        }
 
         if (atmosphereScene) {
             var atmosphereProgress = sceneProgress(atmosphereScene);
@@ -314,7 +287,7 @@
     }
 
     // ── Generic scroll reveal ────────────────────────────────────────────
-    var revealTargets = root.querySelectorAll('.mt-reveal, .mt-results-list article, .mt-specs-list article');
+    var revealTargets = root.querySelectorAll('.mt-reveal, .mt-specs-list article');
     if (revealTargets.length && !reducedMotion) {
         var io = new IntersectionObserver(function (entries, obs) {
             entries.forEach(function (entry) {

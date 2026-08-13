@@ -43,54 +43,51 @@
         return clamp(-rect.top / travel, 0, 1);
     }
 
-    // ── Scroll-scrubbed Technology video (plays frame-by-frame as you scroll) ─
-    var techVideo = root.querySelector('.nf-tech-video');
-    var techVideoDuration = 0;
-    var techVideoReady = false;
+    // ── Scroll-scrubbed Technology section, driven by a preloaded image
+    // sequence instead of a <video> — video.currentTime scrubbing turned out
+    // unreliable in Chrome across two fix attempts (raw <video> repaint, then
+    // canvas + decoder priming), so this sidesteps video decoding entirely.
+    // 150 frames are preloaded as in-memory Image objects and painted onto a
+    // <canvas> with drawImage() — that's a direct pixel blit with no DOM
+    // src-swap/decode overhead, which is what was still causing the
+    // stutter when frames were shown via a plain <img>. ─────────────────────
+    var techCanvas = root.querySelector('.nf-tech-frame');
+    var techCtx = techCanvas ? techCanvas.getContext('2d') : null;
+    var techFrames = [];
+    var techFramesLoaded = 0;
+    var techFramesReady = false;
+    var techLastIndex = -1;
 
-    var NF_DEBUG_SCRUB = false;
-
-    function markTechVideoReady() {
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] event fired, readyState=', techVideo.readyState, 'duration=', techVideo.duration);
-        if (techVideoReady) return;
-        techVideoDuration = techVideo.duration || 0;
-        if (!(techVideoDuration > 0) || !isFinite(techVideoDuration)) return;
-        techVideoReady = true;
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] READY, duration=', techVideoDuration);
-        // Prime the decoder (some browsers won't render seeked frames until
-        // playback has started at least once) — play a beat, then pause.
-        var primePlay = techVideo.play();
-        if (primePlay && typeof primePlay.then === 'function') {
-            primePlay.then(function () { techVideo.pause(); }).catch(function (err) {
-                if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] prime play() rejected:', err);
-            });
-        } else {
-            techVideo.pause();
+    if (techCanvas && techCtx) {
+        var techFrameBase = techCanvas.getAttribute('data-frame-base');
+        var techFrameCount = parseInt(techCanvas.getAttribute('data-frame-count'), 10) || 0;
+        for (var fi = 1; fi <= techFrameCount; fi++) {
+            var src = techFrameBase + String(fi).padStart(3, '0') + '.jpg';
+            var im = new Image();
+            im.onload = function () {
+                techFramesLoaded++;
+                if (this === techFrames[0]) {
+                    techCanvas.width = this.naturalWidth;
+                    techCanvas.height = this.naturalHeight;
+                    techCtx.drawImage(this, 0, 0);
+                }
+                if (techFramesLoaded >= techFrameCount) {
+                    techFramesReady = true;
+                    scrubTechVideo(sceneProgress(techScene));
+                }
+            };
+            im.onerror = function () { techFramesLoaded++; };
+            im.src = src;
+            techFrames.push(im);
         }
-        scrubTechVideo(sceneProgress(techScene));
-    }
-
-    if (techVideo) {
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] found element, initial readyState=', techVideo.readyState);
-        techVideo.addEventListener('loadedmetadata', markTechVideoReady);
-        techVideo.addEventListener('durationchange', markTechVideoReady);
-        techVideo.addEventListener('canplay', markTechVideoReady);
-        techVideo.addEventListener('error', function () {
-            if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] error event, video.error=', techVideo.error);
-        });
-        // Metadata may already be cached/loaded before these listeners attach.
-        if (techVideo.readyState >= 1) markTechVideoReady();
-    } else if (NF_DEBUG_SCRUB) {
-        console.log('[nf-tech-video] .nf-tech-video element NOT FOUND in DOM');
     }
 
     function scrubTechVideo(progress) {
-        if (!techVideo || !techVideoReady) return;
-        var target = Math.min(clamp(progress, 0, 1) * techVideoDuration, techVideoDuration - 0.05);
-        if (NF_DEBUG_SCRUB) console.log('[nf-tech-video] scrub progress=', progress.toFixed(3), 'target=', target.toFixed(2), 'currentTime=', techVideo.currentTime.toFixed(2));
-        if (Math.abs(techVideo.currentTime - target) > 0.03) {
-            techVideo.currentTime = target;
-        }
+        if (!techCtx || !techFramesReady || !techFrames.length) return;
+        var index = Math.round(clamp(progress, 0, 1) * (techFrames.length - 1));
+        if (index === techLastIndex) return;
+        techLastIndex = index;
+        techCtx.drawImage(techFrames[index], 0, 0, techCanvas.width, techCanvas.height);
     }
 
     // ── Statement: scroll-track progress drives the word-lighting instead of
@@ -116,9 +113,7 @@
         if (progressBar) progressBar.style.transform = 'scaleY(' + clamp(scrollY / maxScroll, 0, 1) + ')';
 
         if (techScene) {
-            var progress = sceneProgress(techScene);
-            root.style.setProperty('--nf-tech-progress', progress.toFixed(4));
-            scrubTechVideo(progress);
+            scrubTechVideo(sceneProgress(techScene));
         }
 
         if (atmosphereScene) {
@@ -259,7 +254,7 @@
     }
 
     // ── Generic scroll reveal ────────────────────────────────────────────
-    var revealTargets = root.querySelectorAll('.nf-reveal, .nf-results-list article');
+    var revealTargets = root.querySelectorAll('.nf-reveal');
     if (revealTargets.length && !reducedMotion) {
         var io = new IntersectionObserver(function (entries, obs) {
             entries.forEach(function (entry) {
