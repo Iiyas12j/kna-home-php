@@ -169,6 +169,22 @@ if ($pdo instanceof PDO) {
             </div>
         </section>
 
+        <!-- Who it's for -->
+        <section class="mt-candidates" aria-labelledby="mtCandidatesTitle">
+            <div class="mt-candidates-inner">
+                <p class="mt-chapter"><span>03</span> Who It's For</p>
+                <h2 id="mtCandidatesTitle">เหมาะกับใครบ้าง</h2>
+                <ul class="mt-candidate-list">
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่มีผิวหย่อนคล้อยระดับต้น-กลาง ยังไม่ต้องการผ่าตัด</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่มีริ้วรอยลึก ต้องการเห็นผลลัพธ์ทันทีหลังทำหัตถการ</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ต้องการยกกระชับโดยพักฟื้นสั้น แผลเล็ก</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่กลัวการผ่าตัดหรือการดมยาสลบ</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ต้องการผลลัพธ์อยู่ได้นานสูงสุด 12 เดือน</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ต้องการไหมสลายเองตามธรรมชาติ ไม่มีสารตกค้าง</li>
+                </ul>
+            </div>
+        </section>
+
         <!-- Trust / safety — infinite marquee, matches the ticker style on the other product pages -->
         <div class="mt-trust" aria-label="ความปลอดภัยของ METEORA">
             <div class="mt-trust-track">
@@ -186,7 +202,7 @@ if ($pdo instanceof PDO) {
         <!-- Gallery -->
         <section class="mt-gallery" aria-labelledby="mtGalleryTitle">
             <div class="mt-gallery-heading">
-                <p class="mt-chapter"><span>03</span> Product Visual</p>
+                <p class="mt-chapter"><span>04</span> Product Visual</p>
                 <h2 id="mtGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="mt-gallery-grid">
@@ -216,17 +232,6 @@ if ($pdo instanceof PDO) {
             </div>
         </section>
 
-        <!-- CTA -->
-        <div class="mt-cta">
-            <div>
-                <h3>ต้องการข้อมูลเพิ่มเติม?</h3>
-                <p>ทีมงาน KNA Interpharma พร้อมให้คำปรึกษาโดยตรง</p>
-            </div>
-            <div class="mt-cta-actions">
-                <a href="/contact.php" class="mt-btn mt-btn--solid"><i class="fa-solid fa-headset" aria-hidden="true"></i> ติดต่อเรา</a>
-                <a href="tel:056200890" class="mt-btn mt-btn--glass"><i class="fa-solid fa-phone" aria-hidden="true"></i> 056-200890</a>
-            </div>
-        </div>
 
         <!-- Lightbox -->
         <div class="mt-lightbox" role="dialog" aria-modal="true" aria-label="ภาพ/วิดีโอสินค้าแบบเต็มจอ">

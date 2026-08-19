@@ -159,6 +159,23 @@ if ($pdo instanceof PDO) {
             </div>
         </section>
 
+        <!-- Who it's for -->
+        <section class="nf-candidates" aria-labelledby="nfCandidatesTitle">
+            <div class="nf-candidates-inner">
+                <p class="nf-chapter"><span>03</span> Who It's For</p>
+                <h2 id="nfCandidatesTitle">เหมาะกับใครบ้าง</h2>
+                <p class="nf-candidates-duration"><strong>ผลลัพธ์คงอยู่ 12–24 เดือน</strong> จากการกระตุ้นคอลลาเจนต่อเนื่องหลังจาก PDLLA เริ่มสลายตัวที่เดือนที่ 6</p>
+                <ul class="nf-candidate-list">
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผิวแห้ง ขาดน้ำ ดูโทรมเหี่ยวเฉา</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> มีริ้วรอยเล็กๆ ผิวขาดความยืดหยุ่น แต่งหน้าไม่ติด รองพื้นตกร่อง</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ต้องการฟื้นฟูผิวเร่งด่วนก่อนงานสำคัญ</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ไม่ต้องการฉีดฟิลเลอร์ปริมาณมาก หรือกลัวการศัลยกรรม</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ต้องการเติมร่องลึก ขมับ โหนกแก้ม จมูก คาง</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ต้องการฟื้นฟูผิวได้ทั้งใบหน้าและร่างกาย</li>
+                </ul>
+            </div>
+        </section>
+
         <!-- Trust / safety — infinite marquee, matches the ticker style on the other product pages -->
         <div class="nf-trust" aria-label="ความปลอดภัยของ NeoFilera">
             <div class="nf-trust-track">
@@ -178,7 +195,7 @@ if ($pdo instanceof PDO) {
         <!-- Gallery -->
         <section class="nf-gallery" aria-labelledby="nfGalleryTitle">
             <div class="nf-gallery-heading">
-                <p class="nf-chapter"><span>03</span> Product Visual</p>
+                <p class="nf-chapter"><span>04</span> Product Visual</p>
                 <h2 id="nfGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="nf-gallery-grid">

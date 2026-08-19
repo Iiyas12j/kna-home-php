@@ -183,15 +183,35 @@ $hyVariants = [
                     <span class="hy-swatch" style="--hy-swatch-color: <?php echo h($v['accent']); ?>"><i></i> Hyabell <?php echo h($v['name']); ?></span>
                     <?php endforeach; ?>
                 </div>
+
+                <div class="hy-compare-table-wrap">
+                    <table class="hy-compare-table">
+                        <thead>
+                            <tr>
+                                <th>รุ่น</th>
+                                <th>ความเข้มข้น</th>
+                                <th>ระยะเวลาคงอยู่</th>
+                                <th>จุดเด่น</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($hyVariants as $v): ?>
+                            <tr style="--hy-v-accent: <?php echo h($v['accent']); ?>">
+                                <td><span class="hy-compare-dot" aria-hidden="true"></span> Hyabell <?php echo h($v['name']); ?></td>
+                                <td><?php echo h($v['specs']['ความเข้มข้น'] ?? '–'); ?></td>
+                                <td><?php echo h($v['specs']['ระยะเวลาคงอยู่'] ?? '–'); ?></td>
+                                <td><?php echo h($v['tagline']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <!-- Variant sections -->
         <?php foreach ($hyVariants as $i => $v): ?>
         <section class="hy-variant hy-reveal<?php echo $i % 2 === 1 ? ' hy-variant--right' : ''; ?>" style="--hy-v-accent: <?php echo h($v['accent']); ?>" aria-labelledby="hyVariant<?php echo h($v['key']); ?>Title">
-            <?php if (!empty($v['bg'])): ?>
-            <img class="hy-variant-bgphoto" src="<?php echo h($v['bg']); ?>?v=<?php echo (int) @filemtime(__DIR__ . $v['bg']); ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
-            <?php endif; ?>
             <div class="hy-variant-inner">
                 <div class="hy-variant-visual">
                     <div class="hy-variant-stage">
@@ -200,6 +220,9 @@ $hyVariants = [
                         <img class="hy-variant-img" src="<?php echo h($v['image']); ?>" alt="Hyabell <?php echo h($v['name']); ?>" loading="lazy" decoding="async">
                         <div class="hy-variant-floor" aria-hidden="true"></div>
                     </div>
+                    <?php if (!empty($v['bg'])): ?>
+                    <img class="hy-variant-gelphoto" src="<?php echo h($v['bg']); ?>?v=<?php echo (int) @filemtime(__DIR__ . $v['bg']); ?>" alt="เนื้อเจล Hyabell <?php echo h($v['name']); ?>" loading="lazy" decoding="async">
+                    <?php endif; ?>
                 </div>
                 <div class="hy-variant-content">
                     <span class="hy-variant-no"><?php echo h($v['no']); ?> / 05</span>

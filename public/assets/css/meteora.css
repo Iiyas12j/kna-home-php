@@ -331,7 +331,7 @@ html:not(.no-js) .mt-hero-actions {
 .mt-hero-stage {
     position: relative;
     width: min(60vw, 900px);
-    height: min(94vh, 960px);
+    height: min(94vh, 1180px);
     display: grid;
     place-items: center;
 }
@@ -366,7 +366,7 @@ html:not(.no-js) .mt-hero-actions {
 
 .mt-product-stage--thread {
     width: auto;
-    height: min(92vh, 940px);
+    height: min(92vh, 1150px);
     aspect-ratio: 235 / 1500;
 }
 
@@ -471,10 +471,10 @@ html:not(.no-js) .mt-hero-actions {
 .mt-detail--left .mt-detail-line { left: 100%; transform-origin: left center; }
 .mt-detail--right .mt-detail-line { right: 100%; transform-origin: right center; background: linear-gradient(270deg, var(--mt-accent-bright), transparent); }
 
-.mt-detail--1 { top: 2%; left: -14%; }
-.mt-detail--2 { top: 28%; right: -16%; }
-.mt-detail--3 { top: 56%; left: -18%; }
-.mt-detail--4 { top: 82%; right: -14%; }
+.mt-detail--1 { top: 4%; left: -8%; }
+.mt-detail--2 { top: 26%; right: -10%; }
+.mt-detail--3 { top: 49%; left: -12%; }
+.mt-detail--4 { top: 71%; right: -8%; }
 
 .mt-hero-hint {
     position: absolute;
@@ -639,6 +639,56 @@ html:not(.no-js) .mt-hero-actions {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* ── Who it's for ──────────────────────────────────────────────────────── */
+
+.mt-candidates {
+    padding: 14vh 6vw;
+    background: var(--mt-ink);
+}
+
+.mt-candidates-inner { max-width: 1100px; margin: 0 auto; }
+
+.mt-candidates h2 {
+    margin: 0 0 6vh;
+    max-width: 760px;
+    font-family: "Kanit", "IBM Plex Sans Thai", sans-serif;
+    font-weight: 300;
+    font-size: clamp(2rem, 3.4vw, 3.2rem);
+    line-height: 1.2;
+    color: var(--mt-white);
+}
+
+.mt-candidate-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mt-candidate-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: "IBM Plex Sans Thai", sans-serif;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.mt-candidate-list li i {
+    flex: 0 0 auto;
+    margin-top: 0.25em;
+    color: var(--mt-accent);
+}
+
+@media (max-width: 900px) {
+    .mt-candidate-list { grid-template-columns: 1fr; }
 }
 
 /* ── Trust / safety strip ──────────────────────────────────────────────── */
@@ -835,38 +885,6 @@ html:not(.no-js) .mt-hero-actions {
     right: 22px;
 }
 
-/* ── CTA / contact band ─────────────────────────────────────────────────── */
-
-.mt-cta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.6rem;
-    padding: 8vh 6vw;
-    background: var(--mt-ink);
-    border-top: 1px solid var(--mt-line-dark);
-}
-
-.mt-cta h3 {
-    margin: 0 0 0.4rem;
-    font-family: "Kanit", "IBM Plex Sans Thai", sans-serif;
-    font-weight: 400;
-    font-size: 1.9rem;
-}
-
-.mt-cta p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-family: "IBM Plex Sans Thai", sans-serif;
-}
-
-.mt-cta-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.85rem;
-}
-
 /* ── Reveal-on-scroll (generic) ────────────────────────────────────────── */
 
 .mt-reveal {
@@ -913,10 +931,10 @@ html:not(.no-js) .mt-reveal {
     .mt-tech { height: auto; min-height: 60vh; }
     .mt-tech-sticky { position: relative; height: 60vh; min-height: 320px; overflow: hidden; }
 
+    .mt-candidates { padding: 10vh 6vw; }
+
     .mt-gallery { padding: 10vh 6vw 12vh; }
     .mt-gallery-grid { grid-template-columns: 1fr 1fr; }
-
-    .mt-cta { flex-direction: column; align-items: flex-start; padding: 6vh 6vw; }
 
     .mt-lightbox { grid-template-columns: 44px minmax(0, 1fr) 44px; padding: 1rem; }
 }

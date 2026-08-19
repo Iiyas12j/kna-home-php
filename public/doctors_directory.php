@@ -170,31 +170,6 @@ $siteHeaderActive = 'trainer';
         </div>
     </section>
 
-    <!-- Search -->
-    <div class="container mx-auto px-4 max-w-7xl mt-8 mb-2">
-        <form method="get" class="flex gap-3">
-            <input type="text" name="q" value="<?php echo h($q); ?>"
-                   placeholder="ค้นหาชื่อแพทย์, คลินิก, ความเชี่ยวชาญ..."
-                   class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-[#4B4899] focus:ring-2 focus:ring-[#4B4899]/20">
-            <button type="submit"
-                    class="px-6 py-3 rounded-xl text-white font-semibold transition hover:opacity-90"
-                    style="background:#4B4899;">
-                <i class="fa-solid fa-search mr-2"></i>ค้นหา
-            </button>
-            <?php if ($q !== ''): ?>
-            <a href="/doctors_directory.php"
-               class="px-5 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-100 transition">
-                ล้าง
-            </a>
-            <?php endif; ?>
-        </form>
-        <?php if ($q !== ''): ?>
-        <p class="text-sm text-gray-500 mt-3">
-            ผลการค้นหา "<strong class="text-gray-700"><?php echo h($q); ?></strong>" — พบ <?php echo count($items); ?> ท่าน
-        </p>
-        <?php endif; ?>
-    </div>
-
     <!-- Doctor Grid -->
     <div class="container mx-auto px-4 max-w-7xl py-8">
 

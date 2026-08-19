@@ -59,6 +59,7 @@ if ($pdo instanceof PDO) {
         <!-- Statement — scroll-holds while the words light up, then continues -->
         <section class="vf-statement" aria-labelledby="vfStatementTitle">
             <div class="vf-statement-sticky">
+                <img class="vf-statement-bgphoto" src="/uploads/products/variofill-statement-bg.jpg" alt="" aria-hidden="true">
                 <div class="vf-statement-field" aria-hidden="true"></div>
                 <div class="vf-statement-inner">
                     <p class="vf-chapter"><span>01</span> Sculptural Volume</p>
@@ -67,27 +68,45 @@ if ($pdo instanceof PDO) {
             </div>
         </section>
 
+        <!-- Product pack -->
+        <section class="vf-stage-section vf-reveal" aria-labelledby="vfStageTitle">
+            <div class="vf-stage-head">
+                <p class="vf-chapter"><span>02</span> The Pack</p>
+                <h2 id="vfStageTitle" class="vf-visually-hidden">กล่องและไซริงค์ Variofill 33 mg/ml</h2>
+            </div>
+            <div class="vf-stage">
+                <div class="vf-stage-panel" aria-hidden="true"></div>
+                <div class="vf-stage-glow" aria-hidden="true"></div>
+                <img class="vf-stage-img" src="/uploads/products/variofill-syringe.png?v=<?php echo (int) @filemtime(__DIR__ . '/uploads/products/variofill-syringe.png'); ?>" alt="Variofill syringe applicator และกล่องผลิตภัณฑ์ 33 mg/ml, 1 x 10 ml" loading="lazy" decoding="async">
+                <div class="vf-stage-floor" aria-hidden="true"></div>
+            </div>
+        </section>
+
         <!-- Key stats -->
         <section class="vf-stats" aria-labelledby="vfStatsTitle">
             <div class="vf-stats-intro">
-                <p class="vf-chapter"><span>02</span> Why Variofill</p>
+                <p class="vf-chapter"><span>03</span> Why Variofill</p>
                 <h2 id="vfStatsTitle">ฟิลเลอร์ Variofill ดีอย่างไร</h2>
             </div>
+            <img class="vf-stats-photo" src="/uploads/products/variofill-stats-bg.jpg?v=<?php echo (int) @filemtime(__DIR__ . '/uploads/products/variofill-stats-bg.jpg'); ?>" alt="Variofill เข็มฉีดและกลไกล็อก" loading="lazy" decoding="async">
             <div class="vf-stats-list">
                 <div class="vf-stat">
+                    <div class="vf-stat-icon" aria-hidden="true"><i class="fa-solid fa-droplet"></i></div>
                     <span>ความเข้มข้น</span>
                     <strong>33 mg/ml</strong>
                     <p>ความเข้มข้นของ Hyaluronic Acid สูงกว่าฟิลเลอร์ฉีดหน้าทั่วไป ออกแบบมาเฉพาะสำหรับโครงสร้างเนื้อเยื่อสะโพกโดยเฉพาะ</p>
                 </div>
                 <div class="vf-stat">
+                    <div class="vf-stat-icon" aria-hidden="true"><i class="fa-solid fa-hand-holding-medical"></i></div>
                     <span>หัตถการ</span>
                     <strong>Non-Surgical</strong>
                     <p>ไม่ต้องผ่าตัด ไม่มีการดมยาสลบ รอยแผลเล็กที่สุด ใช้เวลาทำหัตถการน้อย ไม่ต้องพักฟื้นนาน</p>
                 </div>
                 <div class="vf-stat">
+                    <div class="vf-stat-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></div>
                     <span>ระยะเวลาคงอยู่</span>
-                    <strong>สูงสุด 2 ปี</strong>
-                    <p>หลังจาก 2 ปี ฟิลเลอร์สลายได้เองโดยไม่มีสารตกค้างในร่างกาย และสามารถกลับมาฉีดซ้ำได้</p>
+                    <strong>24–36 เดือน</strong>
+                    <p>ผลลัพธ์อยู่ได้นาน 2–3 ปี หลังจากนั้นฟิลเลอร์สลายได้เองโดยไม่มีสารตกค้างในร่างกาย และสามารถกลับมาฉีดซ้ำได้</p>
                 </div>
             </div>
         </section>
@@ -96,29 +115,29 @@ if ($pdo instanceof PDO) {
         <section class="vf-detail" aria-labelledby="vfDetailTitle">
             <div class="vf-detail-head">
                 <div>
-                    <p class="vf-chapter"><span>03</span> Product Detail</p>
+                    <p class="vf-chapter"><span>04</span> Product Detail</p>
                     <h2 id="vfDetailTitle">Volume without<br>interruption</h2>
                 </div>
                 <p>ออกแบบสำหรับผู้ที่ต้องการปรับรูปทรงหรือเพิ่มความกลมนูนของสะโพก เป็นทางเลือกที่ไม่ต้องผ่าตัดและใช้เวลาพักฟื้นน้อย</p>
             </div>
             <div class="vf-detail-list">
                 <article>
-                    <span>01</span>
+                    <div class="vf-detail-icon" aria-hidden="true"><i class="fa-solid fa-wave-square"></i></div>
                     <h3>High Elasticity</h3>
-                    <p>ความยืดหยุ่นและความเหนียวหนืดสูง ช่วยป้องกันไม่ให้เกิดการเคลื่อนย้ายของฟิลเลอร์หลังฉีด</p>
+                    <p>ค่าความยืดหยุ่น (G') 1784 Pa และความหนืด (G") 708 Pa สูงกว่าฟิลเลอร์ทั่วไป ช่วยป้องกันไม่ให้เกิดการเคลื่อนย้ายของฟิลเลอร์หลังฉีด</p>
                 </article>
                 <article>
-                    <span>02</span>
+                    <div class="vf-detail-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></div>
                     <h3>Minimal Downtime</h3>
                     <p>ใช้เวลาในการทำหัตถการน้อยมาก ไม่ต้องพักฟื้นนาน กลับไปใช้ชีวิตประจำวันได้ทันที</p>
                 </article>
                 <article>
-                    <span>03</span>
+                    <div class="vf-detail-icon" aria-hidden="true"><i class="fa-solid fa-circle-half-stroke"></i></div>
                     <h3>Natural Contour</h3>
                     <p>ผลลัพธ์สะโพกกลม นูนเป็นธรรมชาติ ไร้รอยต่อ ไม่มีผลต่อการตรวจด้วยคลื่นเสียง</p>
                 </article>
                 <article>
-                    <span>04</span>
+                    <div class="vf-detail-icon" aria-hidden="true"><i class="fa-solid fa-stamp"></i></div>
                     <h3>อย. Registered</h3>
                     <p>ฟิลเลอร์สำหรับฉีดสะโพกเพียงหนึ่งเดียวในประเทศไทยที่ผ่าน อย. ไม่ต้องเสี่ยงกับสารแปลกปลอม</p>
                 </article>
@@ -128,15 +147,17 @@ if ($pdo instanceof PDO) {
         <!-- Who it's for -->
         <section class="vf-candidates" aria-labelledby="vfCandidatesTitle">
             <div class="vf-candidates-inner">
-                <p class="vf-chapter"><span>04</span> Who It's For</p>
+                <p class="vf-chapter"><span>05</span> Who It's For</p>
                 <h2 id="vfCandidatesTitle">หัตถการนี้เหมาะกับใครบ้าง</h2>
                 <ul class="vf-candidate-list">
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ต้องการปรับรูปร่างหรือสร้างเสริมสะโพกให้ดูมีทรงมากขึ้น</li>
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ทำได้ทั้งผู้หญิงและผู้ชาย</li>
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ไม่มีเวลาพักฟื้น หรือมีเวลาพักฟื้นน้อย</li>
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่มีเนื้อสะโพกด้านข้างน้อย สะโพกบุ๋ม ไม่ผาย (Hip Dips)</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> บั้นท้ายสองข้างไม่เท่ากันหรือไม่สมมาตร</li>
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่ไม่ต้องการเติมไขมันหรือใส่ซิลิโคนสะโพก</li>
                     <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่กลัวการผ่าตัด หรือไม่ต้องการรอยแผลเป็น</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ผู้ที่มีโรคประจำตัวซึ่งไม่สามารถผ่าตัดได้</li>
                 </ul>
             </div>
         </section>
@@ -144,7 +165,7 @@ if ($pdo instanceof PDO) {
         <!-- Filler vs fat injection -->
         <section class="vf-compare" aria-labelledby="vfCompareTitle">
             <div class="vf-compare-inner">
-                <p class="vf-chapter"><span>05</span> Filler vs. Fat Transfer</p>
+                <p class="vf-chapter"><span>06</span> Filler vs. Fat Transfer</p>
                 <h2 id="vfCompareTitle">ฟิลเลอร์สะโพกต่างจากการฉีดไขมันสะโพกอย่างไร</h2>
                 <div class="vf-compare-grid">
                     <div class="vf-compare-col vf-compare-col--accent">
@@ -176,19 +197,21 @@ if ($pdo instanceof PDO) {
                 <span class="vf-trust-item"><i class="fa-solid fa-stamp"></i> อย. ไทย — หนึ่งเดียวสำหรับฉีดสะโพก</span>
                 <span class="vf-trust-item"><i class="fa-solid fa-leaf"></i> Hyaluronic Acid 33 mg/ml</span>
                 <span class="vf-trust-item"><i class="fa-solid fa-shield-heart"></i> ไม่ต้องผ่าตัด ไม่ดมยาสลบ</span>
-                <span class="vf-trust-item"><i class="fa-solid fa-clock-rotate-left"></i> คงอยู่นานสูงสุด 2 ปี</span>
+                <span class="vf-trust-item"><i class="fa-solid fa-clock-rotate-left"></i> คงอยู่นาน 24–36 เดือน</span>
+                <span class="vf-trust-item"><i class="fa-solid fa-certificate"></i> ได้มาตรฐาน CE Mark ยุโรป</span>
                 <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-industry"></i> ฟิลเลอร์สะโพกจากเยอรมนี</span>
                 <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-stamp"></i> อย. ไทย — หนึ่งเดียวสำหรับฉีดสะโพก</span>
                 <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-leaf"></i> Hyaluronic Acid 33 mg/ml</span>
                 <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-shield-heart"></i> ไม่ต้องผ่าตัด ไม่ดมยาสลบ</span>
-                <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i> คงอยู่นานสูงสุด 2 ปี</span>
+                <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i> คงอยู่นาน 24–36 เดือน</span>
+                <span class="vf-trust-item" aria-hidden="true"><i class="fa-solid fa-certificate"></i> ได้มาตรฐาน CE Mark ยุโรป</span>
             </div>
         </div>
 
         <!-- Gallery -->
         <section class="vf-gallery" aria-labelledby="vfGalleryTitle">
             <div class="vf-gallery-heading">
-                <p class="vf-chapter"><span>06</span> Product Visual</p>
+                <p class="vf-chapter"><span>07</span> Product Visual</p>
                 <h2 id="vfGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="vf-gallery-grid">
@@ -200,9 +223,17 @@ if ($pdo instanceof PDO) {
                     <img src="/uploads/products/variofill-cover.jpg" alt="Variofill product pack" loading="lazy" decoding="async">
                     <span>Product Pack</span>
                 </button>
-                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/logo_0265c86b4c258082.png" data-lightbox-alt="Variofill wordmark" aria-label="เปิดโลโก้ Variofill แบบเต็มจอ">
-                    <img src="/uploads/products/logo_0265c86b4c258082.png" alt="Variofill wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#150a12;">
+                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-logo.png" data-lightbox-alt="Variofill wordmark" aria-label="เปิดโลโก้ Variofill แบบเต็มจอ">
+                    <img src="/uploads/products/variofill-logo.png" alt="Variofill wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#150a12;">
                     <span>Wordmark</span>
+                </button>
+                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-box-tall.png" data-lightbox-alt="Variofill กล่องผลิตภัณฑ์" aria-label="เปิดภาพกล่องผลิตภัณฑ์แบบเต็มจอ">
+                    <img src="/uploads/products/variofill-box-tall.png" alt="Variofill กล่องผลิตภัณฑ์" loading="lazy" decoding="async" style="object-fit:contain; padding:1.6rem; background:#150a12;">
+                    <span>Product Box</span>
+                </button>
+                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-gel.png" data-lightbox-alt="Variofill เนื้อเจล Hyaluronic Acid" aria-label="เปิดภาพเนื้อเจลแบบเต็มจอ">
+                    <img src="/uploads/products/variofill-gel.png" alt="Variofill เนื้อเจล Hyaluronic Acid" loading="lazy" decoding="async" style="object-fit:contain; padding:1.6rem; background:#150a12;">
+                    <span>Gel Texture</span>
                 </button>
                 <?php foreach ($vfGalleryImages as $i => $img): ?>
                 <button type="button" class="vf-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="Variofill — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
@@ -213,17 +244,6 @@ if ($pdo instanceof PDO) {
             </div>
         </section>
 
-        <!-- CTA -->
-        <div class="vf-cta">
-            <div>
-                <h3>ต้องการข้อมูลเพิ่มเติม?</h3>
-                <p>ทีมงาน KNA Interpharma พร้อมให้คำปรึกษาโดยตรง</p>
-            </div>
-            <div class="vf-cta-actions">
-                <a href="/contact.php" class="vf-btn vf-btn--solid"><i class="fa-solid fa-headset" aria-hidden="true"></i> ติดต่อเรา</a>
-                <a href="tel:056200890" class="vf-btn vf-btn--glass"><i class="fa-solid fa-phone" aria-hidden="true"></i> 056-200890</a>
-            </div>
-        </div>
 
         <!-- Lightbox -->
         <div class="vf-lightbox" role="dialog" aria-modal="true" aria-label="ภาพสินค้าแบบเต็มจอ">

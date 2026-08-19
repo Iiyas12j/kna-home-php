@@ -144,7 +144,7 @@
 
     // ── Stat cards + detail cards: cursor-tilt ───────────────────────────
     (function initTiltCards() {
-        var cards = Array.prototype.slice.call(root.querySelectorAll('.vf-stat, .vf-detail-list article'));
+        var cards = Array.prototype.slice.call(root.querySelectorAll('.vf-stat, .vf-detail-list article, .vf-stage'));
         if (!cards.length || reducedMotion) return;
         cards.forEach(function (card) {
             card.addEventListener('pointermove', function (e) {
