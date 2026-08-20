@@ -11,9 +11,11 @@ $page_title = 'NeoFilera - KNA Interpharma';
 $page_description = 'NeoFilera — The 1st Universal Biostimulator for Face & Body. Advanced Hybrid PLA ประกอบด้วย PDLLA 150 mg และ CMC 50 mg โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_bf0374b5ad2dce7a.jpg';
 
-// Extra gallery photos are admin-managed via /admin/products.php (NeoFilera
-// = product id 1) — anything uploaded there lands in product_images and is
-// appended below after the fixed video/brand/wordmark/3D tiles.
+// Gallery photos are admin-managed via /admin/products.php (NeoFilera
+// = product id 1) — uploads land in product_images and render below.
+// The gallery grid is now admin-driven only: the fixed brand/wordmark tiles
+// were removed so what /admin/products.php holds is exactly what renders,
+// alongside the one hard-coded ad-video tile (no admin field exists for it).
 $nfGalleryImages = [];
 if ($pdo instanceof PDO) {
     $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
@@ -34,13 +36,14 @@ if ($pdo instanceof PDO) {
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
     <main class="nf-page">
+        <?php require __DIR__ . '/partials/product-back-link.php'; ?>
         <canvas class="nf-particles" aria-hidden="true"></canvas>
         <div class="nf-cursor-light" aria-hidden="true"></div>
         <div class="nf-progress" aria-hidden="true"><i></i></div>
 
         <!-- Hero -->
         <section class="nf-scene nf-hero" id="nfHero" aria-label="NeoFilera hero">
-            <video class="nf-hero-video" autoplay muted loop playsinline aria-hidden="true" poster="/uploads/products/neofilera-full-poster.jpg">
+            <video class="nf-hero-video" autoplay muted playsinline aria-hidden="true" poster="/uploads/products/neofilera-full-poster.jpg">
                 <source src="/uploads/products/neofilera-hero-loop.mp4" type="video/mp4">
             </video>
 
@@ -51,9 +54,6 @@ if ($pdo instanceof PDO) {
                     <div class="nf-hero-actions">
                         <a href="/contact.php" class="nf-btn nf-btn--solid"><i class="fa-solid fa-envelope" aria-hidden="true"></i> สอบถามข้อมูลสินค้า</a>
                         <a href="/searchpage.php" class="nf-btn nf-btn--glass"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ค้นหาคลินิก</a>
-                        <button type="button" class="nf-btn nf-btn--glass" data-lightbox-video="/uploads/products/neofilera-full.mp4" data-lightbox-alt="วิดีโอแนะนำ NeoFilera">
-                            <i class="fa-solid fa-circle-play" aria-hidden="true"></i> ดูวิดีโอเต็ม
-                        </button>
                     </div>
                 </div>
             </div>
@@ -131,10 +131,9 @@ if ($pdo instanceof PDO) {
         <!-- Technology / composition -->
         <section class="nf-scene nf-tech" aria-label="องค์ประกอบของ NeoFilera">
             <div class="nf-tech-sticky">
-                <canvas class="nf-tech-frame" id="nfTechFrame" data-frame-base="/uploads/products/neofilera-tech-frames/frame-" data-frame-count="150" aria-hidden="true"></canvas>
+                <canvas class="nf-tech-frame" id="nfTechFrame" data-frame-base="/uploads/products/neofilera-tech-frames/frame-" data-frame-count="150" data-mobile-poster="/uploads/products/neofilera-tech-poster.jpg" aria-hidden="true"></canvas>
                 <div class="nf-tech-heading nf-d4">
                     <p class="nf-chapter"><span>02</span> Advanced Hybrid PLA</p>
-                    <h2>องค์ประกอบสอง ส่วน ระบบเดียว</h2>
                 </div>
                 <div class="nf-visually-hidden">
                     <article data-step="1">
@@ -204,18 +203,6 @@ if ($pdo instanceof PDO) {
                     <span class="nf-gallery-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span>
                     <span>วิดีโอแนะนำ</span>
                 </button>
-                <button type="button" class="nf-gallery-tile" data-lightbox-src="/uploads/products/product_bf0374b5ad2dce7a.jpg" data-lightbox-alt="NeoFilera brand visual" aria-label="เปิดภาพ NeoFilera แบบเต็มจอ">
-                    <img src="/uploads/products/product_bf0374b5ad2dce7a.jpg" alt="NeoFilera brand visual" loading="lazy" decoding="async">
-                    <span>Brand Visual</span>
-                </button>
-                <button type="button" class="nf-gallery-tile" style="background:#0b0a08;" data-lightbox-src="/uploads/products/logo_83e5d3e1f1dc02dd.png" data-lightbox-alt="NeoFilera wordmark" aria-label="เปิดโลโก้ NeoFilera แบบเต็มจอ">
-                    <img src="/uploads/products/logo_83e5d3e1f1dc02dd.png" alt="NeoFilera wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#0b0a08;">
-                    <span>Wordmark</span>
-                </button>
-                <a href="#nfHero" class="nf-gallery-tile nf-gallery-tile--3d" aria-label="เลื่อนกลับไปดูโมเดล 3 มิติที่ Hero">
-                    <i class="fa-solid fa-cube" aria-hidden="true"></i>
-                    <p>ชมโมเดล 3 มิติ</p>
-                </a>
                 <?php foreach ($nfGalleryImages as $i => $img): ?>
                 <button type="button" class="nf-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="NeoFilera — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
                     <img src="/uploads/products/<?php echo h($img); ?>" alt="NeoFilera — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">

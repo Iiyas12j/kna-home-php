@@ -23,10 +23,20 @@
                 </div>
 
                 <!-- Column 3: Newsletter -->
-                <div>
+                <div id="newsletter">
                     <h4 class="text-lg font-semibold mb-4 text-gray-800">กรอกข้อมูลเพื่อรับข่าวสารและโปรโมชั่นดีๆจากเรา</h4>
-                    <form class="space-y-3">
-                        <input type="email" placeholder="Email Address" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#4B4899]">
+                    <?php $subscribed = (string) ($_GET['subscribed'] ?? ''); ?>
+                    <?php if ($subscribed === 'ok'): ?>
+                        <p class="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">สมัครรับข่าวสารเรียบร้อยแล้ว ขอบคุณครับ</p>
+                    <?php elseif ($subscribed === 'invalid'): ?>
+                        <p class="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">กรุณากรอกอีเมลให้ถูกต้อง</p>
+                    <?php elseif ($subscribed === 'error'): ?>
+                        <p class="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">ไม่สามารถสมัครได้ กรุณาลองใหม่</p>
+                    <?php endif; ?>
+                    <form class="space-y-3" method="post" action="/newsletter-subscribe.php">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="redirect" value="<?php echo h(strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?')); ?>">
+                        <input type="email" name="email" placeholder="Email Address" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#4B4899]">
                         <button type="submit" class="w-full bg-[#4B4899] text-white px-6 py-3 rounded-lg hover:bg-[#3d3a7a] transition">
                             Subscribe
                         </button>

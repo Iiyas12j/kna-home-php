@@ -11,9 +11,11 @@ $page_title = 'Hyabell - KNA Interpharma';
 $page_description = 'HYABELL — ตระกูลฟิลเลอร์กรดไฮยาลูโรนิก (HA) เกรดพรีเมี่ยม เทคโนโลยี MPT จากเยอรมนี ครบ 5 สูตร Basic / Deep / Ultra / Lips / Meso โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_33f85ba823296811.jpg';
 
-// Extra gallery photos are admin-managed via /admin/products.php (Hyabell =
-// product id 4) — anything uploaded there lands in product_images and is
-// appended below after the fixed video/family/ribbons/wordmark tiles.
+// Gallery photos are admin-managed via /admin/products.php (Hyabell
+// = product id 4) — uploads land in product_images and render below.
+// The gallery grid is now admin-driven only: the fixed brand/wordmark tiles
+// were removed so what /admin/products.php holds is exactly what renders,
+// alongside the one hard-coded ad-video tile (no admin field exists for it).
 $hyGalleryImages = [];
 if ($pdo instanceof PDO) {
     $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
@@ -145,12 +147,13 @@ $hyVariants = [
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
     <main class="hy-page">
+        <?php require __DIR__ . '/partials/product-back-link.php'; ?>
         <canvas class="hy-particles" aria-hidden="true"></canvas>
         <div class="hy-cursor-light" aria-hidden="true"></div>
 
         <!-- Hero -->
         <section class="hy-hero" id="hyHero" aria-label="Hyabell hero">
-            <video class="hy-hero-video" autoplay muted loop playsinline aria-hidden="true" poster="/uploads/products/hyabell-hero-poster.jpg">
+            <video class="hy-hero-video" autoplay muted playsinline aria-hidden="true" poster="/uploads/products/hyabell-hero-poster.jpg">
                 <source src="/uploads/products/hyabell-hero-loop.mp4" type="video/mp4">
             </video>
 
@@ -162,9 +165,6 @@ $hyVariants = [
                     <div class="hy-hero-actions">
                         <a href="/contact.php" class="hy-btn hy-btn--solid"><i class="fa-solid fa-envelope" aria-hidden="true"></i> สอบถามข้อมูลสินค้า</a>
                         <a href="/searchpage.php" class="hy-btn hy-btn--glass"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ค้นหาคลินิก</a>
-                        <button type="button" class="hy-btn hy-btn--glass" data-lightbox-video="/uploads/products/hyabell-full.mp4" data-lightbox-alt="วิดีโอแนะนำ Hyabell">
-                            <i class="fa-solid fa-circle-play" aria-hidden="true"></i> ดูวิดีโอเต็ม
-                        </button>
                     </div>
                 </div>
             </div>
@@ -271,18 +271,6 @@ $hyVariants = [
                     <img src="/uploads/products/hyabell-full-poster.jpg" alt="วิดีโอแนะนำ Hyabell" loading="lazy" decoding="async">
                     <span class="hy-gallery-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span>
                     <span>วิดีโอแนะนำ</span>
-                </button>
-                <button type="button" class="hy-gallery-tile" data-lightbox-src="/uploads/products/hyabell-family-dark.jpg" data-lightbox-alt="Hyabell family — Basic, Deep, Ultra, Lips, Meso" aria-label="เปิดภาพ Hyabell family แบบเต็มจอ">
-                    <img src="/uploads/products/hyabell-family-dark.jpg" alt="Hyabell family — Basic, Deep, Ultra, Lips, Meso" loading="lazy" decoding="async">
-                    <span>Family — 5 Formulations</span>
-                </button>
-                <button type="button" class="hy-gallery-tile" data-lightbox-src="/uploads/products/hyabell-ribbons.jpg" data-lightbox-alt="Hyabell each variant box" aria-label="เปิดภาพกล่องสินค้าแบบเต็มจอ">
-                    <img src="/uploads/products/hyabell-ribbons.jpg" alt="Hyabell each variant box" loading="lazy" decoding="async">
-                    <span>Product Line</span>
-                </button>
-                <button type="button" class="hy-gallery-tile" style="background:#0b0d1f;" data-lightbox-src="/uploads/products/logo_4308458c4fc28eba.png" data-lightbox-alt="Hyabell wordmark" aria-label="เปิดโลโก้ Hyabell แบบเต็มจอ">
-                    <img src="/uploads/products/logo_4308458c4fc28eba.png" alt="Hyabell wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#0b0d1f;">
-                    <span>Wordmark</span>
                 </button>
                 <?php foreach ($hyGalleryImages as $i => $img): ?>
                 <button type="button" class="hy-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="Hyabell — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">

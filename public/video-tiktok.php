@@ -94,7 +94,7 @@ $siteHeaderActive = 'vdo';
                     <i class="fa-brands fa-tiktok"></i> TikTok Channel
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    คลิป TikTok<br class="hidden sm:block">KNA Interpharma
+                    คลิป TikTok<br class="hidden sm:block">K.N.A. Inter pharma
                 </h1>
 
             </div>

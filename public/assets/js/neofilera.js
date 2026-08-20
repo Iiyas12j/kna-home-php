@@ -15,7 +15,37 @@
     (function initHeroVideo() {
         var heroVideo = root.querySelector('.nf-hero-video');
         if (!heroVideo) return;
-        if (reducedMotion) { heroVideo.pause(); heroVideo.removeAttribute('autoplay'); return; }
+
+        // The hero copy stays hidden until the video has played all the way through
+        // once; after that it holds while the video keeps looping. `loop` is handled
+        // here rather than by the attribute because a looping <video> never fires
+        // `ended`, so there would be no "first pass finished" moment to hook.
+        var copyShown = false;
+        function showHeroCopy() {
+            if (copyShown) return;
+            copyShown = true;
+            root.classList.add('nf-hero-copy-in');
+        }
+        // Safety net: if the video errors, stalls, or is blocked from autoplaying,
+        // the copy and its CTAs must not be stranded off-screen forever.
+        var copyFallback = window.setTimeout(showHeroCopy, 10000);
+        function revealAndClearFallback() {
+            window.clearTimeout(copyFallback);
+            showHeroCopy();
+        }
+        heroVideo.addEventListener('ended', function () {
+            revealAndClearFallback();
+            heroVideo.currentTime = 0;
+            heroVideo.play().catch(function () {});
+        });
+        heroVideo.addEventListener('error', revealAndClearFallback);
+
+        if (reducedMotion) {
+            heroVideo.pause();
+            heroVideo.removeAttribute('autoplay');
+            revealAndClearFallback();
+            return;
+        }
 
         var hero = root.querySelector('.nf-hero');
         var io = new IntersectionObserver(function (entries) {
@@ -61,25 +91,70 @@
     if (techCanvas && techCtx) {
         var techFrameBase = techCanvas.getAttribute('data-frame-base');
         var techFrameCount = parseInt(techCanvas.getAttribute('data-frame-count'), 10) || 0;
-        for (var fi = 1; fi <= techFrameCount; fi++) {
-            var src = techFrameBase + String(fi).padStart(3, '0') + '.jpg';
-            var im = new Image();
-            im.onload = function () {
-                techFramesLoaded++;
-                if (this === techFrames[0]) {
-                    techCanvas.width = this.naturalWidth;
-                    techCanvas.height = this.naturalHeight;
-                    techCtx.drawImage(this, 0, 0);
-                }
-                if (techFramesLoaded >= techFrameCount) {
-                    techFramesReady = true;
-                    scrubTechVideo(sceneProgress(techScene));
+
+        // Below 820px the CSS un-pins .nf-tech-sticky (position: relative), so the
+        // scroll track has zero travel and the scrub can never advance — the section
+        // is a still image there no matter what. Preloading all 150 frames for that
+        // costs ~8 MB of mobile data for nothing. Load one still instead: preferably
+        // the purpose-made square poster (data-mobile-poster), whose callouts survive
+        // a portrait crop, otherwise a mid-sequence frame. The full sequence is
+        // fetched only if the viewport later grows past the breakpoint.
+        var techPinQuery = window.matchMedia('(max-width: 820px)');
+        var techPosterSrc = techCanvas.getAttribute('data-mobile-poster')
+            || (techFrameBase + String(Math.max(1, Math.round(techFrameCount * 0.45))).padStart(3, '0') + '.jpg');
+        var techWanted = 0;
+
+        function paintFirstFrame(img) {
+            techCanvas.width = img.naturalWidth;
+            techCanvas.height = img.naturalHeight;
+            techCtx.drawImage(img, 0, 0);
+        }
+
+        function loadTechFrames(upTo) {
+            if (upTo <= techWanted) return;
+            for (var fi = techWanted + 1; fi <= upTo; fi++) {
+                var im = new Image();
+                im.onload = function () {
+                    techFramesLoaded++;
+                    if (this === techFrames[0]) {
+                        paintFirstFrame(this);
+                    }
+                    if (techFramesLoaded >= techWanted) {
+                        techFramesReady = true;
+                        techLastIndex = -1;
+                        scrubTechVideo(sceneProgress(techScene));
+                    }
+                };
+                im.onerror = function () { techFramesLoaded++; };
+                im.src = techFrameBase + String(fi).padStart(3, '0') + '.jpg';
+                techFrames.push(im);
+            }
+            techWanted = upTo;
+        }
+
+        // Kept out of techFrames, so a later resize can still load the full sequence
+        // and scrub over the top of it.
+        function loadTechPoster() {
+            var poster = new Image();
+            poster.onload = function () {
+                if (!techFramesReady) {
+                    paintFirstFrame(this);
                 }
             };
-            im.onerror = function () { techFramesLoaded++; };
-            im.src = src;
-            techFrames.push(im);
+            poster.src = techPosterSrc;
         }
+
+        if (techPinQuery.matches) {
+            loadTechPoster();
+        } else {
+            loadTechFrames(techFrameCount);
+        }
+
+        var onTechPinChange = function (e) {
+            if (!e.matches) loadTechFrames(techFrameCount);
+        };
+        if (techPinQuery.addEventListener) techPinQuery.addEventListener('change', onTechPinChange);
+        else if (techPinQuery.addListener) techPinQuery.addListener(onTechPinChange);
     }
 
     function scrubTechVideo(progress) {

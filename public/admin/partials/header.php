@@ -10,6 +10,7 @@ $nav_items = [
     'doctors' => ['label' => 'ทำเนียบแพทย์', 'href' => '/admin/doctors.php', 'icon' => 'fa-user-doctor'],
     'products' => ['label' => 'จัดการสินค้า', 'href' => '/admin/products.php', 'icon' => 'fa-box-open'],
     'news' => ['label' => 'ข่าวสาร & กิจกรรม', 'href' => '/admin/news.php', 'icon' => 'fa-newspaper'],
+    'messages' => ['label' => 'ข้อความติดต่อ', 'href' => '/admin/messages.php', 'icon' => 'fa-envelope'],
     'videos' => ['label' => 'จัดการวิดีโอ', 'href' => '/admin/videos.php', 'icon' => 'fa-music'],
     'users' => ['label' => 'Users', 'href' => '/admin/users.php', 'icon' => 'fa-users'],
 ];
@@ -302,6 +303,7 @@ $admin_name = $_SESSION['admin_email'] ?? 'admin';
         }
         .status--on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
         .status--off { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .muted { color: var(--muted); }
         .field {
             display: grid;
             gap: 8px;

@@ -93,7 +93,7 @@ $siteHeaderActive = 'contact';
                     <i class="fa-solid fa-headset"></i> Contact Us
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    ติดต่อเรา<br class="hidden sm:block">KNA Interpharma
+                    ติดต่อเรา<br class="hidden sm:block">K.N.A Inter pharma
                 </h1>
             </div>
         </div>
@@ -124,6 +124,10 @@ $siteHeaderActive = 'contact';
                                 877/10 nirvana@work ถ.พระราม 9<br>
                                 เขตสวนหลวง กรุงเทพมหานคร 10250
                             </p>
+                        </div>
+                        <div class="flex gap-3">
+                            <i class="fa-solid fa-phone text-[#4B4899] mt-1 w-5 text-center shrink-0"></i>
+                            <a href="tel:056200890" class="text-gray-700 hover:text-[#4B4899] font-medium">056-200890</a>
                         </div>
                         <a href="https://maps.app.goo.gl/jEueCJzFEz2pAtBr8" target="_blank" rel="noreferrer"
                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
@@ -166,7 +170,7 @@ $siteHeaderActive = 'contact';
                         </div>
                         <div class="flex gap-3">
                             <i class="fa-solid fa-phone text-[#4B4899] mt-1 w-5 text-center shrink-0"></i>
-                            <a href="tel:056200890" class="text-gray-700 hover:text-[#4B4899] font-medium">056-200890</a>
+                            <a href="tel:0953545666" class="text-gray-700 hover:text-[#4B4899] font-medium">095-354-5666</a>
                         </div>
                         <a href="https://maps.app.goo.gl/esPWwrKxv9BUowuXA" target="_blank" rel="noreferrer"
                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
@@ -209,7 +213,7 @@ $siteHeaderActive = 'contact';
                         <i class="fa-solid fa-clock text-2xl" style="color:#4B4899;"></i>
                     </div>
                     <h3 class="font-bold text-gray-800 mb-2">เวลาทำการ</h3>
-                    <p class="text-sm text-gray-600">จันทร์ - ศุกร์<br>09:00 - 17:00 น.</p>
+                    <p class="text-sm text-gray-600">จันทร์ - ศุกร์<br>10:00 - 18:00 น.</p>
                 </div>
                 <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm">
                     <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#EEF0FA;">
@@ -217,9 +221,9 @@ $siteHeaderActive = 'contact';
                     </div>
                     <h3 class="font-bold text-gray-800 mb-2">โซเชียลมีเดีย</h3>
                     <div class="flex justify-center gap-4 mt-2">
-                        <a href="#" class="text-gray-400 hover:text-[#4B4899] text-xl transition"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#" class="text-gray-400 hover:text-black text-xl transition"><i class="fa-brands fa-tiktok"></i></a>
-                        <a href="#" class="text-gray-400 hover:text-pink-500 text-xl transition"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.facebook.com/KNAINTERPHARMA" target="_blank" rel="noreferrer" class="text-gray-400 hover:text-[#4B4899] text-xl transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="https://www.tiktok.com/@knainterpharma?lang=th-TH" target="_blank" rel="noreferrer" class="text-gray-400 hover:text-black text-xl transition"><i class="fa-brands fa-tiktok"></i></a>
+                        <a href="https://www.instagram.com/kna_interpharma/?hl=en" target="_blank" rel="noreferrer" class="text-gray-400 hover:text-pink-500 text-xl transition"><i class="fa-brands fa-instagram"></i></a>
                     </div>
                 </div>
             </div>

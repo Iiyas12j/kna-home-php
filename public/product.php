@@ -86,7 +86,7 @@ $siteHeaderActive = 'product';
                     <i class="fa-solid fa-box-open"></i> Our Products
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    ผลิตภัณฑ์<br class="hidden sm:block">KNA Interpharma
+                    Our Products<br class="hidden sm:block">
                 </h1>
             </div>
         </div>
@@ -95,7 +95,6 @@ $siteHeaderActive = 'product';
     <section id="product-grid" class="px-4 pb-14 pt-10 md:px-6 lg:px-8 lg:pb-20">
         <div class="mx-auto max-w-7xl">
             <div class="mb-12 text-center">
-                <p class="text-xs font-semibold uppercase tracking-[0.32em] text-indigo-500">Product Collection</p>
                 <h2 class="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">รายการผลิตภัณฑ์ทั้งหมด</h2>
                 <div class="mx-auto mt-6 h-px w-16 bg-indigo-400/50"></div>
             </div>
@@ -122,13 +121,6 @@ $siteHeaderActive = 'product';
                                     <i class="fa-solid fa-box-open text-6xl"></i>
                                 </div>
                             <?php endif; ?>
-                        </div>
-
-                        <div class="mt-5 flex items-center justify-between px-1">
-                            <h3 class="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl"><?php echo h($name); ?></h3>
-                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition duration-300 group-hover:border-[#4B4899] group-hover:bg-[#4B4899] group-hover:text-white">
-                                <i class="fa-solid fa-arrow-right text-sm"></i>
-                            </span>
                         </div>
                     </a>
                 <?php endforeach; ?>

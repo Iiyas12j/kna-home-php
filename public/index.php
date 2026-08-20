@@ -243,7 +243,7 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
 
 <section id="groups" class="py-14 bg-white">
     <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold mb-8 text-center">กลุ่มผลิตภัณฑ์</h2>
+        <h2 class="text-3xl font-bold mb-8 text-center">Our Products</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-7xl mx-auto">
             <?php
             // Match group titles (which may be misspelled) to real products for detail links.
@@ -276,7 +276,7 @@ $page_title = 'KNA Interpharma - Pharmacy & Healthcare';
                 <?php $img = media_url($item['image_path'] ?? '', 'website', '/uploads/p2.jpg'); ?>
                 <?php $itemTitle = (string) ($item['title'] ?? ''); ?>
                 <a href="<?php echo h($groupProductLink($itemTitle)); ?>" class="group block">
-                    <div class="relative overflow-hidden rounded-xl shadow-md h-72">
+                    <div class="relative overflow-hidden rounded-xl shadow-md aspect-[1920/823]">
                         <img src="<?php echo h($img); ?>" alt="<?php echo h($item['title'] ?? 'Group'); ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white font-semibold flex items-center justify-between">
                             <span><?php echo h($item['title'] ?? 'ไม่มีชื่อ'); ?></span>

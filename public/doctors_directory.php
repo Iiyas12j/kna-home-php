@@ -25,7 +25,7 @@ if ($pdo instanceof PDO) {
             $sql .= ' AND (name_th LIKE ? OR name_en LIKE ? OR specialty LIKE ? OR clinic_name LIKE ?)';
             $params = array_fill(0, 4, '%' . $q . '%');
         }
-        $sql .= ' ORDER BY id ASC';
+        $sql .= ' ORDER BY sort_order ASC, id ASC';
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -161,7 +161,7 @@ $siteHeaderActive = 'trainer';
         <div class="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8">
             <div class="max-w-2xl mx-auto text-center">
                 <h1 class="text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    ทำเนียบแพทย์<br class="hidden sm:block">KNA Interpharma
+                    ทำเนียบแพทย์<br class="hidden sm:block">
                 </h1>
                 <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur">
                     <i class="fa-solid fa-stethoscope"></i> มีแพทย์ทั้งหมด <?php echo number_format($totalDoctors); ?> ท่าน

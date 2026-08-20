@@ -15,7 +15,37 @@
     (function initHeroVideo() {
         var heroVideo = root.querySelector('.mt-hero-video');
         if (!heroVideo) return;
-        if (reducedMotion) { heroVideo.pause(); heroVideo.removeAttribute('autoplay'); return; }
+
+        // The hero copy stays hidden until the video has played all the way through
+        // once; after that it holds while the video keeps looping. `loop` is handled
+        // here rather than by the attribute because a looping <video> never fires
+        // `ended`, so there would be no "first pass finished" moment to hook.
+        var copyShown = false;
+        function showHeroCopy() {
+            if (copyShown) return;
+            copyShown = true;
+            root.classList.add('mt-hero-copy-in');
+        }
+        // Safety net: if the video errors, stalls, or is blocked from autoplaying,
+        // the copy and its CTAs must not be stranded off-screen forever.
+        var copyFallback = window.setTimeout(showHeroCopy, 13920);
+        function revealAndClearFallback() {
+            window.clearTimeout(copyFallback);
+            showHeroCopy();
+        }
+        heroVideo.addEventListener('ended', function () {
+            revealAndClearFallback();
+            heroVideo.currentTime = 0;
+            heroVideo.play().catch(function () {});
+        });
+        heroVideo.addEventListener('error', revealAndClearFallback);
+
+        if (reducedMotion) {
+            heroVideo.pause();
+            heroVideo.removeAttribute('autoplay');
+            revealAndClearFallback();
+            return;
+        }
 
         var hero = root.querySelector('.mt-hero');
         var io = new IntersectionObserver(function (entries) {

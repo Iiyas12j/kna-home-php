@@ -11,9 +11,11 @@ $page_title = 'METEORA - KNA Interpharma';
 $page_description = 'METEORA THREAD — ไหมขนนกจากไต้หวัน ยกกระชับ เบาสบาย ผลิตโดย Diamond Biotechnology วัสดุ PDO ปลอดภัยสูง โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_445da58afe7ebb7d.jpg';
 
-// Extra gallery photos are admin-managed via /admin/products.php (METEORA =
-// product id 2) — anything uploaded there lands in product_images and is
-// appended below after the fixed video/brand/zones/wordmark tiles.
+// Gallery photos are admin-managed via /admin/products.php (METEORA
+// = product id 2) — uploads land in product_images and render below.
+// The gallery grid is now admin-driven only: the fixed brand/wordmark tiles
+// were removed so what /admin/products.php holds is exactly what renders,
+// alongside the one hard-coded ad-video tile (no admin field exists for it).
 $mtGalleryImages = [];
 if ($pdo instanceof PDO) {
     $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
@@ -34,6 +36,7 @@ if ($pdo instanceof PDO) {
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
     <main class="mt-page">
+        <?php require __DIR__ . '/partials/product-back-link.php'; ?>
         <canvas class="mt-particles" aria-hidden="true"></canvas>
         <div class="mt-cursor-light" aria-hidden="true"></div>
         <div class="mt-progress" aria-hidden="true"><i></i></div>
@@ -41,7 +44,7 @@ if ($pdo instanceof PDO) {
         <!-- Hero -->
         <section class="mt-scene mt-hero" id="mtHero" aria-label="METEORA hero">
             <h1 class="mt-visually-hidden">METEORA — Miracle Lifting Thread</h1>
-            <video class="mt-hero-video" autoplay muted loop playsinline aria-hidden="true" poster="/uploads/products/meteora-full-poster.jpg">
+            <video class="mt-hero-video" autoplay muted playsinline aria-hidden="true" poster="/uploads/products/meteora-full-poster.jpg">
                 <source src="/uploads/products/meteora-hero-loop.mp4" type="video/mp4">
             </video>
 
@@ -52,9 +55,6 @@ if ($pdo instanceof PDO) {
                     <div class="mt-hero-actions">
                         <a href="/contact.php" class="mt-btn mt-btn--solid"><i class="fa-solid fa-envelope" aria-hidden="true"></i> สอบถามข้อมูลสินค้า</a>
                         <a href="/searchpage.php" class="mt-btn mt-btn--glass"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ค้นหาคลินิก</a>
-                        <button type="button" class="mt-btn mt-btn--glass" data-lightbox-video="/uploads/products/meteora-full.mp4" data-lightbox-alt="วิดีโอแนะนำ METEORA">
-                            <i class="fa-solid fa-circle-play" aria-hidden="true"></i> ดูวิดีโอเต็ม
-                        </button>
                     </div>
                 </div>
             </div>
@@ -210,18 +210,6 @@ if ($pdo instanceof PDO) {
                     <img src="/uploads/products/meteora-full-poster.jpg" alt="วิดีโอแนะนำ METEORA" loading="lazy" decoding="async">
                     <span class="mt-gallery-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span>
                     <span>วิดีโอแนะนำ</span>
-                </button>
-                <button type="button" class="mt-gallery-tile" data-lightbox-src="/uploads/products/product_445da58afe7ebb7d.jpg" data-lightbox-alt="METEORA brand visual" aria-label="เปิดภาพ METEORA แบบเต็มจอ">
-                    <img src="/uploads/products/product_445da58afe7ebb7d.jpg" alt="METEORA brand visual" loading="lazy" decoding="async">
-                    <span>Brand Visual</span>
-                </button>
-                <button type="button" class="mt-gallery-tile" data-lightbox-src="/uploads/products/meteora-zones.jpg" data-lightbox-alt="ตำแหน่งยกกระชับด้วย METEORA" aria-label="เปิดภาพตำแหน่งยกกระชับแบบเต็มจอ">
-                    <img src="/uploads/products/meteora-zones.jpg" alt="ตำแหน่งยกกระชับด้วย METEORA" loading="lazy" decoding="async">
-                    <span>Treatment Zones</span>
-                </button>
-                <button type="button" class="mt-gallery-tile" style="background:#0b0d1f;" data-lightbox-src="/uploads/products/logo_b8a022812ee848c2.png" data-lightbox-alt="METEORA wordmark" aria-label="เปิดโลโก้ METEORA แบบเต็มจอ">
-                    <img src="/uploads/products/logo_b8a022812ee848c2.png" alt="METEORA wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#0b0d1f;">
-                    <span>Wordmark</span>
                 </button>
                 <?php foreach ($mtGalleryImages as $i => $img): ?>
                 <button type="button" class="mt-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="METEORA — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">

@@ -19,7 +19,7 @@ $page_title = 'About Us - KNA Interpharma';
                     <i class="fa-solid fa-building"></i> About Us
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    เกี่ยวกับเรา<br class="hidden sm:block">KNA Interpharma
+                    About Us<br class="hidden sm:block">
                 </h1>
             </div>
         </div>
@@ -30,8 +30,8 @@ $page_title = 'About Us - KNA Interpharma';
         <div class="container mx-auto px-4">
             <div class="max-w-6xl mx-auto">
                 <div class="grid md:grid-cols-2 gap-12 items-center">
-                    <div class="rounded-2xl shadow-lg bg-white flex items-center justify-center p-4">
-                        <img src="/uploads/logo-kna.png" alt="KNA Interpharma logo" class="w-full object-contain">
+                    <div class="rounded-2xl shadow-lg overflow-hidden">
+                        <img src="/uploads/about/about-logo-kna.png?v=<?php echo (int) @filemtime(__DIR__ . '/uploads/about/about-logo-kna.png'); ?>" alt="KNA Interpharma logo" class="w-full block">
                     </div>
                     <div>
                         <h2 class="text-4xl font-bold mb-6" style="color: #4B4899;">K.N.A INTER PHARMA Co.,Ltd</h2>
@@ -59,7 +59,7 @@ $page_title = 'About Us - KNA Interpharma';
                         </p>
                     </div>
                     <div class="order-1 md:order-2">
-                        <img src="/uploads/product2.jpg" alt="KNA Products" class="rounded-2xl shadow-lg w-full">
+                        <img src="/uploads/about/about-product-showcase.png?v=<?php echo (int) @filemtime(__DIR__ . '/uploads/about/about-product-showcase.png'); ?>" alt="KNA Products" class="rounded-2xl shadow-lg w-full">
                     </div>
                 </div>
             </div>

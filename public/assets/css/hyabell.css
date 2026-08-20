@@ -104,8 +104,6 @@
     z-index: 4;
     display: flex;
     align-items: center;
-    max-width: 1360px;
-    margin: 0 auto;
     padding: calc(var(--header-height, 84px) + 6vh) 4.5vw 10vh;
     min-height: 108svh;
 }
@@ -156,9 +154,14 @@ html:not(.no-js) .hy-lead { opacity: 0; transform: translateY(20px); }
 
 html:not(.no-js) .hy-hero-actions { opacity: 0; transform: translateY(20px); }
 
-.hy-is-ready .hy-kicker,
-.hy-is-ready .hy-lead,
-.hy-is-ready .hy-hero-actions { opacity: 1; transform: translateY(0); }
+/* html:not(.no-js) .hy-kicker hides at (0,2,1); the old reveal selector was
+   (0,2,0) and silently lost, so the hero copy and both CTA buttons never
+   appeared. Adding html:not(.no-js) makes this (0,3,1) and it wins.
+   Gated on .hy-hero-copy-in, which JS adds after the hero video finishes
+   its first pass. */
+html:not(.no-js) .hy-hero-copy-in .hy-kicker,
+html:not(.no-js) .hy-hero-copy-in .hy-lead,
+html:not(.no-js) .hy-hero-copy-in .hy-hero-actions { opacity: 1; transform: translateY(0); }
 
 .hy-btn {
     display: inline-flex;
@@ -266,6 +269,9 @@ html:not(.no-js) .hy-hero-actions { opacity: 0; transform: translateY(20px); }
     overflow-x: auto;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
+    /* momentum scrolling + no vertical rubber-banding while swiping the table */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .hy-compare-table {
@@ -702,7 +708,10 @@ html:not(.no-js) .hy-hero-actions { opacity: 0; transform: translateY(20px); }
 
 .hy-reveal { transition: opacity 800ms ease, transform 800ms var(--hy-ease); }
 html:not(.no-js) .hy-reveal { opacity: 0; transform: translateY(30px); }
-.hy-reveal.is-visible { opacity: 1; transform: translateY(0); }
+/* html:not(.no-js) .hy-reveal hides at (0,2,1); this was (0,2,0) and lost,
+   so a revealed section stayed at opacity 0 — a full-height blank hole even
+   though JS had added .is-visible. html:not(.no-js) makes it (0,3,0). */
+html:not(.no-js) .hy-reveal.is-visible { opacity: 1; transform: translateY(0); }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
@@ -723,8 +732,14 @@ html:not(.no-js) .hy-reveal { opacity: 0; transform: translateY(30px); }
 }
 
 @media (max-width: 820px) {
-    .hy-hero { min-height: auto; }
-    .hy-hero-inner { padding: calc(var(--header-height, 66px) + 5vh) 6vw 8vh; min-height: auto; }
+    /* Phones show the hero artwork alone — the kicker, lead and CTAs are
+       hidden here, so min-height keeps the section from collapsing to its
+       padding. svh (not vh) so the mobile URL bar does not resize it. */
+    .hy-hero { min-height: 62svh; }
+    .hy-hero-inner { padding: calc(var(--header-height, 66px) + 5vh) 6vw 8vh; min-height: 62svh; }
+    .hy-kicker,
+    .hy-lead,
+    .hy-hero-actions { display: none; }
     .hy-title { font-size: clamp(2.5rem, 10vw, 3.8rem); }
     .hy-intro { padding: 10vh 6vw; }
     .hy-variant { padding: 9vh 6vw; }

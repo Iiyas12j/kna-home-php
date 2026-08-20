@@ -236,7 +236,7 @@ $siteHeaderActive = 'clinic';
                             onclick="window.location.href='/searchpage.php'"
                             class="w-full py-3 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition"
                         >
-                            ล้างค่า
+                            คืนค่า
                         </button>
                         <button
                             type="submit"
@@ -321,26 +321,20 @@ $siteHeaderActive = 'clinic';
                                     </div>
 
                                     <?php if (!empty($clinicProductList)): ?>
-                                        <div class="flex flex-wrap gap-2 mb-4">
+                                        <div class="flex flex-nowrap items-center gap-1.5 mb-4 overflow-x-auto">
                                             <?php foreach ($clinicProductList as $clinicProduct): ?>
                                                 <?php if (!empty($clinicProduct['logo'])): ?>
-                                                    <span class="inline-flex items-center justify-center h-11 w-32 rounded-xl bg-white border border-slate-200 shadow-sm px-2" title="<?php echo h($clinicProduct['name']); ?>">
-                                                        <img src="<?php echo h($clinicProduct['logo']); ?>" alt="<?php echo h($clinicProduct['name']); ?>" class="max-h-8 max-w-full object-contain">
+                                                    <span class="inline-flex min-w-0 items-center justify-center h-8 w-20 px-1" title="<?php echo h($clinicProduct['name']); ?>">
+                                                        <img src="<?php echo h($clinicProduct['logo']); ?>" alt="<?php echo h($clinicProduct['name']); ?>" class="max-h-6 max-w-full object-contain">
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center justify-center h-11 w-32 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 text-sm font-medium truncate"><?php echo h($clinicProduct['name']); ?></span>
+                                                    <span class="inline-flex min-w-0 items-center justify-center h-8 w-20 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 px-1 text-xs font-medium truncate"><?php echo h($clinicProduct['name']); ?></span>
                                                 <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
 
                                     <div class="space-y-3 text-sm text-slate-600">
-                                        <?php if (!empty($clinic['address'])): ?>
-                                            <p class="flex items-start gap-3">
-                                                <i class="fa-solid fa-location-dot mt-1 text-indigo-600"></i>
-                                                <span><?php echo nl2br(h($clinic['address'])); ?></span>
-                                            </p>
-                                        <?php endif; ?>
 
                                         <?php if (!empty($clinic['phone'])): ?>
                                             <p class="flex items-center gap-3">

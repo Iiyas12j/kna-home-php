@@ -20,6 +20,7 @@ $item = [
     'bio' => '',
     'photo' => '',
     'is_active' => 1,
+    'sort_order' => '',
 ];
 $errors = [];
 $uploadDir = __DIR__ . '/../uploads/doctors';
@@ -52,6 +53,7 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim($_POST['bio'] ?? '');
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     $current_photo = $_POST['current_photo'] ?? '';
+    $sort_order_raw = trim((string) ($_POST['sort_order'] ?? ''));
 
     if ($name_th === '' || $specialty === '' || $clinic_name === '') {
         $errors[] = 'กรุณากรอกข้อมูลที่จำเป็น';
@@ -68,11 +70,20 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $photo = $newPhoto ?: $current_photo;
         try {
             if ($id > 0) {
-                $stmt = $pdo->prepare('UPDATE doctors SET name_th = ?, name_en = ?, specialty = ?, clinic_name = ?, phone = ?, email = ?, bio = ?, photo = ?, is_active = ?, updated_at = NOW() WHERE id = ?');
-                $stmt->execute([$name_th, $name_en, $specialty, $clinic_name, $phone, $email, $bio, $photo, $is_active, $id]);
+                // Blank = keep whatever order the list page already gave this doctor.
+                $sort_order = $sort_order_raw === ''
+                    ? (int) $pdo->query('SELECT sort_order FROM doctors WHERE id = ' . $id)->fetchColumn()
+                    : (int) $sort_order_raw;
+                $stmt = $pdo->prepare('UPDATE doctors SET name_th = ?, name_en = ?, specialty = ?, clinic_name = ?, phone = ?, email = ?, bio = ?, photo = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE id = ?');
+                $stmt->execute([$name_th, $name_en, $specialty, $clinic_name, $phone, $email, $bio, $photo, $is_active, $sort_order, $id]);
             } else {
-                $stmt = $pdo->prepare('INSERT INTO doctors (name_th, name_en, specialty, clinic_name, phone, email, bio, photo, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
-                $stmt->execute([$name_th, $name_en, $specialty, $clinic_name, $phone, $email, $bio, $photo, $is_active]);
+                // Default new doctors to the end of the list — the column default of 0
+                // would otherwise drop them at the very top.
+                $sort_order = $sort_order_raw === ''
+                    ? ((int) $pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM doctors')->fetchColumn() + 10)
+                    : (int) $sort_order_raw;
+                $stmt = $pdo->prepare('INSERT INTO doctors (name_th, name_en, specialty, clinic_name, phone, email, bio, photo, is_active, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+                $stmt->execute([$name_th, $name_en, $specialty, $clinic_name, $phone, $email, $bio, $photo, $is_active, $sort_order]);
             }
 
             if ($newPhoto && $current_photo && $current_photo !== $newPhoto) {
@@ -97,6 +108,7 @@ if ($db_ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'bio' => $bio,
         'photo' => $current_photo,
         'is_active' => $is_active,
+        'sort_order' => $sort_order_raw,
     ]);
 }
 
@@ -162,6 +174,12 @@ require_once __DIR__ . '/partials/header.php';
                 <label>อีเมล</label>
                 <input type="email" name="email" value="<?php echo h($item['email']); ?>">
             </div>
+        </div>
+
+        <div class="field">
+            <label>ลำดับการแสดงบนเว็บไซต์</label>
+            <input type="number" name="sort_order" value="<?php echo h((string) ($item['sort_order'] ?? '')); ?>" min="0" step="1" style="max-width:160px;">
+            <small class="muted">เลขน้อยขึ้นก่อน — เว้นว่างไว้ได้ <?php echo $editing ? 'ถ้าไม่ต้องการเปลี่ยนลำดับเดิม' : 'ระบบจะวางต่อท้ายรายการให้เอง'; ?> หรือกดปุ่ม &uarr;&darr; จัดลำดับได้ที่หน้า <a href="/admin/doctors.php">ทำเนียบแพทย์</a></small>
         </div>
 
         <label><input type="checkbox" name="is_active" <?php echo ($item['is_active'] ?? 1) ? 'checked' : ''; ?>> แสดงบนเว็บไซต์</label>

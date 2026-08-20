@@ -11,9 +11,11 @@ $page_title = 'Variofill - KNA Interpharma';
 $page_description = 'VARIOFILL for Gluteal Augmentation — ฟิลเลอร์สำหรับฉีดสะโพกจากเยอรมนี เพียงหนึ่งเดียวที่ผ่าน อย. ในประเทศไทย ความเข้มข้น HA 33 mg/ml โดย KNA Interpharma';
 $page_og_image = '/uploads/products/product_0804341d31d48a0b.jpg';
 
-// Extra gallery photos are admin-managed via /admin/products.php (Variofill
-// = product id 3) — anything uploaded there lands in product_images and is
-// appended below after the fixed brand/pack/wordmark tiles.
+// Gallery photos are admin-managed via /admin/products.php (Variofill
+// = product id 3) — uploads land in product_images and render below.
+// The gallery grid is now admin-driven only: the fixed brand/wordmark tiles
+// were removed so what /admin/products.php holds is exactly what renders.
+// With no uploads the section renders nothing, so it is skipped entirely.
 $vfGalleryImages = [];
 if ($pdo instanceof PDO) {
     $stmt = $pdo->prepare('SELECT image FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC');
@@ -34,6 +36,7 @@ if ($pdo instanceof PDO) {
     <?php require_once __DIR__ . '/partials/site-header.php'; ?>
 
     <main class="vf-page">
+        <?php require __DIR__ . '/partials/product-back-link.php'; ?>
         <canvas class="vf-particles" aria-hidden="true"></canvas>
         <div class="vf-cursor-light" aria-hidden="true"></div>
 
@@ -44,7 +47,9 @@ if ($pdo instanceof PDO) {
             <div class="vf-hero-inner">
                 <div class="vf-hero-copy">
                     <p class="vf-kicker">Gluteal Augmentation Filler</p>
-                    <h1 class="vf-title">Variofill</h1>
+                    <!-- Wordmark is baked into the hero artwork; keep the h1 for SEO / screen
+                         readers (it is the page's only h1) but hide it visually. -->
+                    <h1 class="vf-title vf-visually-hidden">Variofill</h1>
                     <p class="vf-lead">ฟิลเลอร์สำหรับฉีดสะโพกจากประเทศเยอรมนี เพียงหนึ่งเดียวที่ผ่าน อย. ในประเทศไทย ความเข้มข้นของกรดไฮยาลูโรนิกสูงถึง 33 มก./มล. เติมเต็มบั้นท้ายให้กลมเด้งเป็นธรรมชาติ โดยไม่ต้องผ่าตัด</p>
                     <div class="vf-hero-actions">
                         <a href="/contact.php" class="vf-btn vf-btn--solid"><i class="fa-solid fa-envelope" aria-hidden="true"></i> สอบถามข้อมูลสินค้า</a>
@@ -88,7 +93,6 @@ if ($pdo instanceof PDO) {
                 <p class="vf-chapter"><span>03</span> Why Variofill</p>
                 <h2 id="vfStatsTitle">ฟิลเลอร์ Variofill ดีอย่างไร</h2>
             </div>
-            <img class="vf-stats-photo" src="/uploads/products/variofill-stats-bg.jpg?v=<?php echo (int) @filemtime(__DIR__ . '/uploads/products/variofill-stats-bg.jpg'); ?>" alt="Variofill เข็มฉีดและกลไกล็อก" loading="lazy" decoding="async">
             <div class="vf-stats-list">
                 <div class="vf-stat">
                     <div class="vf-stat-icon" aria-hidden="true"><i class="fa-solid fa-droplet"></i></div>
@@ -208,33 +212,16 @@ if ($pdo instanceof PDO) {
             </div>
         </div>
 
-        <!-- Gallery -->
+        <!-- Gallery — entirely admin-driven (product_images). Variofill has no ad
+             video, so with no uploads there is nothing to show and the whole
+             section is skipped rather than rendering an empty heading. -->
+        <?php if (!empty($vfGalleryImages)): ?>
         <section class="vf-gallery" aria-labelledby="vfGalleryTitle">
             <div class="vf-gallery-heading">
                 <p class="vf-chapter"><span>07</span> Product Visual</p>
                 <h2 id="vfGalleryTitle">ภาพผลิตภัณฑ์</h2>
             </div>
             <div class="vf-gallery-grid">
-                <button type="button" class="vf-gallery-tile" data-lightbox-src="/uploads/products/product_0804341d31d48a0b.jpg" data-lightbox-alt="Variofill brand visual" aria-label="เปิดภาพ Variofill แบบเต็มจอ">
-                    <img src="/uploads/products/product_0804341d31d48a0b.jpg" alt="Variofill brand visual" loading="lazy" decoding="async">
-                    <span>Brand Visual</span>
-                </button>
-                <button type="button" class="vf-gallery-tile" data-lightbox-src="/uploads/products/variofill-cover.jpg" data-lightbox-alt="Variofill product pack" aria-label="เปิดภาพกล่องผลิตภัณฑ์แบบเต็มจอ">
-                    <img src="/uploads/products/variofill-cover.jpg" alt="Variofill product pack" loading="lazy" decoding="async">
-                    <span>Product Pack</span>
-                </button>
-                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-logo.png" data-lightbox-alt="Variofill wordmark" aria-label="เปิดโลโก้ Variofill แบบเต็มจอ">
-                    <img src="/uploads/products/variofill-logo.png" alt="Variofill wordmark" loading="lazy" decoding="async" style="object-fit:contain; padding:2.4rem; background:#150a12;">
-                    <span>Wordmark</span>
-                </button>
-                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-box-tall.png" data-lightbox-alt="Variofill กล่องผลิตภัณฑ์" aria-label="เปิดภาพกล่องผลิตภัณฑ์แบบเต็มจอ">
-                    <img src="/uploads/products/variofill-box-tall.png" alt="Variofill กล่องผลิตภัณฑ์" loading="lazy" decoding="async" style="object-fit:contain; padding:1.6rem; background:#150a12;">
-                    <span>Product Box</span>
-                </button>
-                <button type="button" class="vf-gallery-tile" style="background:#150a12;" data-lightbox-src="/uploads/products/variofill-gel.png" data-lightbox-alt="Variofill เนื้อเจล Hyaluronic Acid" aria-label="เปิดภาพเนื้อเจลแบบเต็มจอ">
-                    <img src="/uploads/products/variofill-gel.png" alt="Variofill เนื้อเจล Hyaluronic Acid" loading="lazy" decoding="async" style="object-fit:contain; padding:1.6rem; background:#150a12;">
-                    <span>Gel Texture</span>
-                </button>
                 <?php foreach ($vfGalleryImages as $i => $img): ?>
                 <button type="button" class="vf-gallery-tile" data-lightbox-src="/uploads/products/<?php echo h($img); ?>" data-lightbox-alt="Variofill — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" aria-label="เปิดภาพผลิตภัณฑ์แบบเต็มจอ">
                     <img src="/uploads/products/<?php echo h($img); ?>" alt="Variofill — ภาพผลิตภัณฑ์ <?php echo $i + 1; ?>" loading="lazy" decoding="async">
@@ -243,6 +230,7 @@ if ($pdo instanceof PDO) {
                 <?php endforeach; ?>
             </div>
         </section>
+        <?php endif; ?>
 
 
         <!-- Lightbox -->

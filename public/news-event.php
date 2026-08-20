@@ -25,7 +25,7 @@ $siteHeaderActive = 'news';
                     <i class="fa-regular fa-newspaper"></i> News & Events
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                    ข่าวสารและกิจกรรม<br class="hidden sm:block">KNA Interpharma
+                    ข่าวสารและกิจกรรม<br class="hidden sm:block">K.N.A Inter pharma
                 </h1>
             </div>
         </div>

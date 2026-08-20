@@ -480,8 +480,8 @@ require_once __DIR__ . '/partials/header.php';
     </div>
 <?php endif; ?>
 
-<div class="toolbar">
-    <form method="get" class="row" style="flex:1; min-width:780px;">
+<div class="toolbar" style="align-items:flex-end;">
+    <form id="clinicFilterForm" method="get" class="row" style="flex:1; min-width:600px;">
         <div class="field" style="margin:0;">
             <label>ค้นหา</label>
             <input type="text" name="q" value="<?php echo h($filter_q); ?>" placeholder="ชื่อคลินิก, ที่อยู่, หรือเบอร์โทร">
@@ -504,12 +504,12 @@ require_once __DIR__ . '/partials/header.php';
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="actions" style="align-items:flex-end;">
-            <button class="btn btn--primary" type="submit"><i class="fa-solid fa-filter"></i>กรองข้อมูล</button>
-        </div>
     </form>
-    <button class="btn btn--muted" data-modal-open="importModal"><i class="fa-solid fa-file-csv"></i>นำเข้า CSV</button>
-    <button class="btn btn--primary" data-modal-open="clinicModal"><i class="fa-solid fa-plus"></i>เพิ่มคลินิกใหม่</button>
+    <div class="actions" style="flex-wrap:nowrap;">
+        <button class="btn btn--primary" type="submit" form="clinicFilterForm"><i class="fa-solid fa-filter"></i>กรองข้อมูล</button>
+        <button class="btn btn--muted" data-modal-open="importModal"><i class="fa-solid fa-file-csv"></i>นำเข้า CSV</button>
+        <button class="btn btn--primary" data-modal-open="clinicModal"><i class="fa-solid fa-plus"></i>เพิ่มคลินิกใหม่</button>
+    </div>
 </div>
 
 <div style="margin-bottom:10px; font-weight:700;">ทั้งหมด <?php echo (int) $total; ?> คลินิก</div>
