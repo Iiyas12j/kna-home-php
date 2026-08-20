@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Top Bar -->
     <div class="bg-white border-b border-gray-200 py-3 px-6 flex items-center justify-between">
         <a href="/index.php">
-            <img src="/uploads/kna-logo.png" alt="KNA Interpharma" class="h-10 w-auto"
+            <img src="/uploads/logo-kna.png" alt="KNA Interpharma" class="h-10 w-auto"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
             <span class="hidden font-bold text-xl" style="color:#4B4899;">KNA Interpharma</span>
         </a>
